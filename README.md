@@ -1,8 +1,8 @@
-# Themetags Cart Order Form
+# wings_cart Cart Order Form sample
 
 ## Overview
 
-This is the converted Node.js/Express.js version of the Themetags Cart order form.
+This is the Node.js/Express.js version Cart order form.
 
 ## Structure
 
@@ -26,36 +26,7 @@ templates/orderforms/themetags_cart/
     └── img/                # Images
 ```
 
-## Conversion Notes
 
-### Template Syntax Changes
-
-**Smarty/PHP → EJS:**
-
-1. **Includes:**
-   - `{include file="..."}` → `<%- include('...') %>`
-
-2. **Variables:**
-   - `{$variable}` → `<%= variable %>`
-   - `{$variable|upper}` → `<%= variable.toUpperCase() %>`
-
-3. **Conditionals:**
-   - `{if $condition}...{/if}` → `<% if (condition) { %>...<% } %>`
-   - `{if $a eq "b"}` → `<% if (a === 'b') { %>`
-
-4. **Loops:**
-   - `{foreach $items as $item}` → `<% items.forEach(item => { %>`
-   - `{/foreach}` → `<% }); %>`
-
-5. **Language Keys:**
-   - `{lang key='...'}` → `<%= lang.key || 'Default' %>`
-   - `{$LANG.key}` → `<%= lang.key || 'Default' %>`
-
-### Asset Paths
-
-All asset paths have been updated to use the order form asset route:
-- `/orderforms/themetags_cart/assets/css/custom.css`
-- `/orderforms/themetags_cart/assets/img/logo.png`
 
 ### Data Structure
 
@@ -76,7 +47,7 @@ The controller provides the following data to templates:
 ### Access Order Form
 
 ```
-GET /orderforms/themetags_cart?step=products
+GET /orderforms/wings_cart?step=products
 ```
 
 ### Available Steps
@@ -92,12 +63,10 @@ GET /orderforms/themetags_cart?step=products
 
 Assets are served from:
 ```
-/orderforms/themetags_cart/assets/{path}
+/orderforms/wings_cart/assets/{path}
 ```
 
-## Remaining Templates to Convert
-
-The following templates still need to be converted from `.tpl` to `.ejs`:
+## Templates
 
 - [ ] `checkout.ejs` - Checkout form
 - [ ] `complete.ejs` - Order completion
@@ -123,7 +92,6 @@ The following templates still need to be converted from `.tpl` to `.ejs`:
 ## Notes
 
 - The form uses EJS templating engine
-- All PHP/Smarty logic has been converted to JavaScript/EJS
 - Asset paths are relative to the order form assets route
 - Language keys should be provided via the `lang` object in template data
 
