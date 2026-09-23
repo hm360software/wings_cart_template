@@ -1,0 +1,1506 @@
+<style>
+    /* Remove all black borders from cards and divs */
+    .order-checkout .card,
+    .order-checkout .card-header,
+    .order-checkout .card-body,
+    .order-checkout .border,
+    .order-checkout .border-top,
+    .order-checkout .border-bottom,
+    .order-checkout .border-start,
+    .order-checkout .border-end,
+    .order-checkout .border-2,
+    .order-checkout .list-group-item {
+        border: none !important;
+        border-color: transparent !important;
+    }
+    
+    /* Keep only visual separators with background colors or shadows */
+    .order-checkout .card {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Style dashed borders as subtle dividers */
+    .order-checkout .border-2.border-dashed {
+        border-top: 1px dashed #e0e0e0 !important;
+        border-bottom: none !important;
+        border-left: none !important;
+        border-right: none !important;
+    }
+    
+    /* Set minimum width for dropdowns to prevent shrinking */
+    .order-checkout #state,
+    .order-checkout #city,
+    .order-checkout #state_new,
+    .order-checkout #city_new {
+        min-width: 246px;
+    }
+    
+    /* Ensure proper spacing between country and state dropdowns */
+    .order-checkout .row.g-3 > .col-md-6 {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    
+    /* Ensure form-select doesn't exceed container width */
+    .order-checkout select.form-select {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+</style>
+
+<div id="order-standard_cart" class="order-checkout py-4">
+    <div class="container-fluid">
+        <% const requiresDomain=(cart && cart.domainRequired) || (selectedProduct && selectedProduct.requiresDomain);
+            const selectedDomain=cart && cart.domain ? cart.domain : null; const cartItems=(cart &&
+            Array.isArray(cart.items)) ? cart.items : []; const cartHasItems=cartItems.length> 0;
+            const hasDomainItems = cartItems.some(item => item.type === 'domain');
+            const hasProductItems = cartItems.some(item => !item.type || item.type !== 'domain');
+            const isDomainOnlyOrder = hasDomainItems && !hasProductItems;
+            const cartIsEmpty = !cartHasItems;
+            // Use currency from context or cart, with proper fallback
+            const currentCurrency = currency || cart?.currency || { prefix: '$', suffix: '', code: 'USD' };
+            const defaultDisplay = currentCurrency.prefix + '0.00' + (currentCurrency.suffix || ' ' + (currentCurrency.code || 'USD'));
+
+            // Calculate totals with discount (in EJS server-side)
+            let subtotal = 0;
+            let discountAmount = 0;
+            let taxAmount = 0;
+            let finalTotal = 0;
+            let taxRate = 0;
+            
+            if (cartHasItems) {
+                // Calculate subtotal from items
+                cartItems.forEach(item => {
+                    const price = parseFloat(item.price?.value || item.price || 0);
+                    subtotal += price;
+                });
+                
+                // Get discount from promotion
+                if (cart.promotion && cart.promotion.totalDiscount) {
+                    discountAmount = parseFloat(cart.promotion.totalDiscount) || 0;
+                } else if (cart.discountAmount) {
+                    discountAmount = parseFloat(cart.discountAmount) || 0;
+                }
+                
+                // Calculate total after discount
+                const totalAfterDiscount = Math.max(0, subtotal - discountAmount);
+                
+                // Debug: Log taxCalculation availability in template
+                // Note: Using console.log won't work in EJS template, but we can see if variable exists
+                
+                // Use tax calculation from context if available
+                if (typeof taxCalculation !== 'undefined' && taxCalculation && taxCalculation !== null) {
+                    // Use calculated tax from tax service
+                    taxAmount = parseFloat(taxCalculation.totalTax || 0);
+                    finalTotal = parseFloat(taxCalculation.finalTotal || totalAfterDiscount);
+                    taxRate = parseFloat(taxCalculation.taxRateLevel1 || 0);
+                    if (taxCalculation.taxRateLevel2 && parseFloat(taxCalculation.taxRateLevel2) > 0) {
+                        taxRate = parseFloat(taxCalculation.taxRateLevel1 || 0) + parseFloat(taxCalculation.taxRateLevel2 || 0);
+                    }
+                } else {
+                    // If no tax calculation is available yet, do not guess a tax rate in the UI.
+                    taxAmount = 0;
+                    finalTotal = totalAfterDiscount;
+                }
+            }
+            %>
+            <% const hasPromotion = cart && cart.promotion && cart.promotion.code; %>
+            <% const totalDue = cartHasItems ? (cart?.totals?.display || defaultDisplay) : defaultDisplay; %>
+
+            <% if (cartIsEmpty) { %>
+                <!-- Empty Cart Page -->
+                <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                            <div class="card-header bg-white">
+                                <h4 class="mb-0">Review & Checkout</h4>
+                    </div>
+                    <div class="card-body">
+                                <!-- Shopping Cart Table Header -->
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3"
+                                    style="background-color: #f8f9fa; padding: 10px; margin: -15px -15px 15px -15px;">
+                                    <div class="fw-semibold">Product/Options</div>
+                                    <div class="fw-semibold">Price/Cycle</div>
+                                </div>
+
+                                <!-- Empty Cart Message -->
+                                <div class="text-center py-5">
+                                    <h5 class="mb-3">Your Shopping Cart is Empty</h5>
+                                </div>
+
+                                <!-- Promo Code Section -->
+                                <div class="border-top pt-4">
+                                    <div class="d-flex gap-2 mb-3">
+                                        <button type="button" class="btn btn-sm"
+                                            style="background-color: #e9ecef; border: none;" id="promoCodeTab">Apply
+                                            Promo Code</button>
+                                        <button type="button" class="btn btn-sm btn-link text-primary p-0"
+                                            id="estimateTaxesTab">Estimate Taxes</button>
+                            </div>
+                                    <div id="promoCodeSection">
+                                        <div class="input-group mb-3">
+                                            <span class="input-group-text bg-white border-end-0">
+                                                <i class="fas fa-tag text-primary"></i>
+                                            </span>
+                                            <input type="text" class="form-control border-start-0"
+                                                placeholder="Enter promo code if you have one" id="promoCodeInput">
+                                        </div>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                            id="validateCodeBtn">Validate Code</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                                </div>
+                    <div class="col-lg-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0">Order Summary</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Subtotal</span>
+
+                                    <span><%= cartHasItems ? (currentCurrency.prefix + subtotal.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code)) : defaultDisplay %></span>
+                                </div>
+                                <% if (hasPromotion && discountAmount > 0) { %>
+                                <div class="d-flex justify-content-between mb-2 text-success">
+                                    <span>Promotion (<%= cart.promotion.code %>)</span>
+                                    <span>-<%= currentCurrency.prefix + discountAmount.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code) %></span>
+                                </div>
+                                <% } %>
+                                <% if (taxAmount > 0) { %>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Tax <% if (typeof taxCalculation !== 'undefined' && taxCalculation && taxCalculation.taxRateLevel2 > 0) { %>
+                                        @ <%= taxCalculation.taxRateLevel1.toFixed(2) %>% + <%= taxCalculation.taxRateLevel2.toFixed(2) %>% (Compound)
+                                    <% } else { %>
+                                        @ <%= taxRate.toFixed(2) %>%
+                                    <% } %></span>
+                                    <span><%= cartHasItems ? (currentCurrency.prefix + taxAmount.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code)) : defaultDisplay %></span>
+                                </div>
+                                <% } %>
+                                    <span><%= defaultDisplay %></span>
+                                </div>
+                                <div class="border-top border-bottom py-2 mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Totals</span>
+                                        <span></span>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <span class="fw-bold fs-5">Total Due Today</span>
+
+                                    <span class="fw-bold fs-5"><%= cartHasItems ? (currentCurrency.prefix + finalTotal.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code)) : defaultDisplay %></span>
+
+                                    <span class="fw-bold fs-5"><%= defaultDisplay %></span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-primary" disabled>Checkout →</button>
+                                    <a href="/clientarea/services?context=my" class="btn-continue-shopping">
+                                        ← Continue Shopping
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% } else if (requireLogin) { %>
+                    <!-- Full Checkout Form for Non-Logged-In Users -->
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <!-- Pink Header -->
+                            <div class="bg-danger text-white p-4 mb-4 rounded-top">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h3 class="mb-2 fw-bold">Checkout</h3>
+                                        <p class="mb-0">Please enter your personal details and billing information to
+                                            checkout.</p>
+                                    </div>
+                                    <a href="/clientarea/login?return=<%= encodeURIComponent(`/orderforms/${formId}?step=checkout`) %>"
+                                        class="btn btn-light btn-sm">
+                                        Already Registered?
+                                    </a>
+                                </div>
+                            </div>
+
+                            <form method="post" action="/orderforms/<%= formId %>/checkout" id="checkoutForm"
+                                class="bg-white p-4 rounded-bottom shadow-sm">
+                                <input type="hidden" name="_csrf" value="<%= typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '') %>">
+                                <input type="hidden" name="pid"
+                                    value="<%= selectedProduct ? selectedProduct.pid : '' %>">
+                                <input type="hidden" name="gid"
+                                    value="<%= selectedProduct ? (selectedProduct.groupSlug || selectedProduct.groupId || '') : '' %>">
+
+                                <!-- Sign Up Section -->
+                                <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                    <h5 class="fw-bold mb-3">Sign Up</h5>
+                                    <p class="text-muted mb-3">Save time by signing up using an existing account with
+                                        any of the services below.</p>
+                                    <button type="button"
+                                        class="btn btn-outline-secondary d-flex align-items-center gap-2"
+                                        style="width: 100%; max-width: 300px;">
+                                        <svg width="18" height="18" viewBox="0 0 18 18">
+                                            <path fill="#4285F4"
+                                                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" />
+                                            <path fill="#34A853"
+                                                d="M9 18c2.43 0 4.467-.806 5.96-2.184l-2.908-2.258c-.806.54-1.837.86-3.052.86-2.35 0-4.34-1.587-5.052-3.72H.957v2.331C2.438 15.983 5.482 18 9 18z" />
+                                            <path fill="#FBBC05"
+                                                d="M3.948 10.698c-.18-.54-.282-1.117-.282-1.698s.102-1.158.282-1.698V4.971H.957C.348 6.175 0 7.55 0 9s.348 2.825.957 4.029l2.991-2.331z" />
+                                            <path fill="#EA4335"
+                                                d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.971L3.948 7.302C4.66 5.167 6.65 3.58 9 3.58z" />
+                                        </svg>
+                                        Sign in with Google
+                                </button>
+                                </div>
+
+                                <!-- Personal Information -->
+                                <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                    <h5 class="fw-bold mb-3">Personal Information</h5>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">
+                                                <i class="fas fa-user text-danger me-2"></i>First Name <span
+                                                    class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" class="form-control" name="firstname" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">
+                                                <i class="fas fa-user text-danger me-2"></i>Last Name <span
+                                                    class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" class="form-control" name="lastname" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">
+                                                <i class="fas fa-envelope text-danger me-2"></i>Email Address <span
+                                                    class="text-danger">*</span>
+                                            </label>
+                                            <input type="email" class="form-control" name="email" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">
+                                                <i class="fas fa-phone text-danger me-2"></i>Phone Number <span
+                                                    class="text-danger">*</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <span class="input-group-text" id="phoneCode">+1</span>
+                                                <input type="tel" class="form-control" name="phonenumber" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Billing Address -->
+                                <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                    <h5 class="fw-bold mb-3">Billing Address</h5>
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label class="form-label">Company Name (Optional)</label>
+                                            <input type="text" class="form-control" name="companyname">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Street Address <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" name="address1" required>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Street Address 2</label>
+                                            <input type="text" class="form-control" name="address2">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Country <span class="text-danger">*</span></label>
+                                            <select class="form-select" name="country" id="country" required>
+                                                <option value="">-- Country --</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">State/Province/Region <span
+                                                    class="text-danger">*</span></label>
+                                            <select class="form-select" name="state" id="state" required>
+                                                <option value="">-- State --</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">City <span class="text-danger">*</span></label>
+                                            <select class="form-select" name="city" id="city" required>
+                                                <option value="">-- City --</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Zip/Postal Code <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" name="postcode" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Domain Registrant Information -->
+                                <% if (hasDomainItems) { %>
+                                    <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                        <h5 class="fw-bold mb-3">Domain Registrant Information</h5>
+                                        <p class="text-muted mb-3">You may specify alternative registrant contact
+                                            details for the domain registration(s) in your order when placing an order
+                                            on behalf of another person or entity. If you do not require this, you can
+                                            skip this section.</p>
+                                        <select class="form-select" name="domainRegistrantType">
+                                            <option value="default" selected>Use Default Contact (Details Above)
+                                            </option>
+                                            <option value="custom">Use Custom Contact Details</option>
+                                        </select>
+                                    </div>
+                                <% } %>
+
+                                        <!-- Account Security -->
+                                        <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                            <h5 class="fw-bold mb-3">Account Security</h5>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">
+                                                        <i class="fas fa-lock text-danger me-2"></i>Password <span
+                                                            class="text-danger">*</span>
+                                                    </label>
+                                                    <input type="password" class="form-control" name="password"
+                                                        id="password" required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">
+                                                        <i class="fas fa-lock text-danger me-2"></i>Confirm Password
+                                                        <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input type="password" class="form-control" name="confirmPassword"
+                                                        required>
+                                                </div>
+                                            </div>
+                                            <div class="mt-2">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                    id="generatePassword">Generate Password</button>
+                                                <div class="mt-2">
+                                                    <small class="text-muted">Password strength: </small>
+                                                    <div class="progress mt-1" style="height: 5px;">
+                                                        <div class="progress-bar bg-warning" role="progressbar"
+                                                            style="width: 50%;" id="passwordStrength"></div>
+                            </div>
+                                                    <small class="text-muted" id="passwordStrengthText">Moderate</small>
+                    </div>
+                </div>
+            </div>
+
+                                        <!-- Payment Details -->
+                                        <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                            <h5 class="fw-bold mb-3">Payment Details</h5>
+                                            <div class="alert alert-success p-3">
+                                                <strong>Total Due Today: <%= cartHasItems ? (currentCurrency.prefix + finalTotal.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code)) : defaultDisplay %></strong>
+                                            </div>
+                                        </div>
+
+                                        <!-- Preferred Method of Payment -->
+                                        <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                            <h5 class="fw-bold mb-3">Preferred Method of Payment</h5>
+                                            <p class="text-muted mb-3">Please choose your preferred method of payment.
+                                            </p>
+                                            <% 
+                                            const enabledGateways = typeof enabledPaymentGateways !== 'undefined' && Array.isArray(enabledPaymentGateways) ? enabledPaymentGateways : [];
+                                            if (enabledGateways.length > 0) {
+                                                enabledGateways.forEach(function(gateway, index) {
+                                                    const isFirst = index === 0;
+                                                    const gatewayId = 'payment' + gateway.gateway.charAt(0).toUpperCase() + gateway.gateway.slice(1);
+                                                    const gatewayLabel = gateway.display_name || gateway.name;
+                                                    const gatewayModule = gateway.module || '';
+                                            %>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="radio" name="paymentmethod"
+                                                    id="<%= gatewayId %>" value="<%= gateway.gateway %>" <%= isFirst ? 'checked' : '' %>>
+                                                <label class="form-check-label" for="<%= gatewayId %>">
+                                                    <%= gatewayLabel %><% 
+                                                    // Add descriptive text for certain gateways
+                                                    if (gateway.gateway === 'paypal') { %> (International)<% 
+                                                    } else if (gateway.gateway === 'stripe' || gateway.gateway === 'card') { %> (International Payment)<% 
+                                                    } else if (gateway.gateway === 'phonepe' || gateway.gateway === 'razorpay' || gateway.gateway === 'banktransfer') { %> (Indian Payment)<% 
+                                                    } %>
+                                                </label>
+                                            </div>
+                                            <% 
+                                                });
+                                            } else {
+                                            %>
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                No payment methods are currently available. Please contact support.
+                                            </div>
+                                            <% } %>
+                                        </div>
+
+                                        <!-- Additional Notes -->
+                                        <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                            <h5 class="fw-bold mb-3">Additional Notes</h5>
+                                            <p class="text-muted mb-3">You can enter any additional notes or information
+                                                you want included with your order here...</p>
+                                            <textarea name="notes" class="form-control" rows="4"
+                                                placeholder="Enter any special instructions or notes..."></textarea>
+                                        </div>
+
+                                        <!-- Join our mailing list -->
+                                        <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                            <h5 class="fw-bold mb-3">Join our mailing list</h5>
+                                            <p class="text-muted mb-3">We would like to send you occasional news,
+                                                information and special offers by email. Choose below whether you want
+                                                to join our mailing list. You can unsubscribe at any time.</p>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" name="mailinglist"
+                                                    id="mailinglist" checked>
+                                                <label class="form-check-label" for="mailinglist">Yes, I want to receive
+                                                    emails</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="terms" id="terms"
+                                                    required>
+                                                <label class="form-check-label" for="terms">
+                                                    I have read and agree to the <a href="/terms" target="_blank">Terms
+                                                        of Service</a> <span class="text-danger">*</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Complete Order Button -->
+                                        <div class="text-center mb-4">
+                                            <button type="submit" class="btn btn-danger btn-lg px-5" <%=(cartIsEmpty ||
+                                                !cartHasItems) ? 'disabled' : '' %>>
+                                                <i class="fas fa-arrow-right me-2"></i>Complete Order
+                                            </button>
+                                        </div>
+
+                                        <!-- Security Banner -->
+                                        <div class="alert alert-warning mb-0">
+                                            <i class="fas fa-lock me-2"></i>
+                                            <small>This order form is provided in a secure environment and is to help
+                                                protect against fraud your current IP address (<%= typeof clientIp
+                                                    !=='undefined' ? clientIp : 'N/A' %>) is being logged.</small>
+                                        </div>
+                            </form>
+                        </div>
+
+                        <!-- Right Sidebar - Order Summary -->
+            <div class="col-lg-4">
+                            <div class="card shadow-sm sticky-top" style="top: 20px;">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Order Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <% if (cartHasItems) { %>
+                            <ul class="list-group list-group-flush mb-3">
+                                            <% cart.items.forEach(function(item, index) { %>
+                                                <li
+                                                    class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                    <div class="flex-grow-1">
+                                                        <strong class="d-block">
+                                                            <%= item.name %>
+                                                        </strong>
+                                                        <small class="text-muted">
+                                                            <% if (item.type==='domain' ) { %>
+                                                                Domain <%= item.domainMode==='register' ? 'Registration'
+                                                                    : item.domainMode==='transfer' ? 'Transfer'
+                                                                    : 'Renewal' %>
+                                                                    <% } else { %>
+                                                                        <% 
+                                                                            const cycleLabels = {
+                                                                                'monthly': 'Billed monthly',
+                                                                                'quarterly': 'Billed quarterly',
+                                                                                'semiannually': 'Billed semi-annually',
+                                                                                'annually': 'Billed yearly',
+                                                                                'biennially': 'Billed biennially',
+                                                                                'triennially': 'Billed triennially'
+                                                                            };
+                                                                            const cycleDisplay = cycleLabels[item.billingCycle] || (item.billingCycle ? 'Billed ' + item.billingCycle : 'Billed monthly');
+                                                                        %>
+                                                                        <%= cycleDisplay %>
+                                                                            <% } %>
+                                                        </small>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-3">
+                                                        <span class="fw-semibold">
+                                                            <%= item.price.display %>
+                                                        </span>
+                                                        <form method="post"
+                                                            action="/orderforms/<%= formId %>/cart/remove/<%= item.id %>"
+                                                            class="d-inline remove-item-form"
+                                                            data-item-id="<%= item.id %>"
+                                                            onsubmit="return false;">
+                                                            <input type="hidden" name="_csrf" value="<%= typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '') %>">
+                                                            <button type="button"
+                                                                class="btn btn-link text-danger p-0 remove-item-btn"
+                                                                style="line-height: 1;" title="Remove item"
+                                                                data-form-action="/orderforms/<%= formId %>/cart/remove/<%= item.id %>">
+                                                                <i class="fas fa-trash-alt"></i>
+                                                            </button>
+                                                        </form>
+                                        </div>
+                                    </li>
+                                <% }); %>
+                            </ul>
+                        <% } else { %>
+                            <p class="text-muted mb-3">Your cart is empty.</p>
+                        <% } %>
+
+                                <% if (cartHasItems) { %>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Subtotal</span>
+                                        <span><%= currentCurrency.prefix + subtotal.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code) %></span>
+                                    </div>
+                                    <% if (hasPromotion && discountAmount > 0) { %>
+                                    <div class="d-flex justify-content-between mb-2 text-success">
+                                        <span>Promotion (<%= cart.promotion.code %>)</span>
+                                        <span>-<%= currentCurrency.prefix + discountAmount.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code) %></span>
+                                    </div>
+                                    <% } %>
+                                    <% if (taxAmount > 0) { %>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Tax <% if (typeof taxCalculation !== 'undefined' && taxCalculation && taxCalculation.taxRateLevel2 > 0) { %>
+                                            @ <%= taxCalculation.taxRateLevel1.toFixed(2) %>% + <%= taxCalculation.taxRateLevel2.toFixed(2) %>% (Compound)
+                                        <% } else { %>
+                                            @ <%= taxRate.toFixed(2) %>%
+                                        <% } %></span>
+                                        <span><%= currentCurrency.prefix + taxAmount.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code) %></span>
+                                    </div>
+                                    <% } %>
+                                    <hr>
+                                <% } %>
+                                                <div
+                                                    class="d-flex justify-content-between align-items-center border-top pt-3">
+                            <span class="fw-semibold">Total Due Today</span>
+                                                    <span class="fw-bold fs-5">
+                                                        <%= cartHasItems ? (currentCurrency.prefix + finalTotal.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code)) : defaultDisplay %>
+                                                    </span>
+                                                </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <% } else if (!cartIsEmpty) { %>
+                        <!-- Checkout for logged-in users -->
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <!-- Header -->
+                                <div class="bg-danger text-white p-4 mb-4 rounded-top">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h3 class="mb-2 fw-bold">Checkout</h3>
+                                            <p class="mb-0">Please enter your personal details and billing information
+                                                to checkout.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <form method="post" action="/orderforms/<%= formId %>/checkout"
+                                    id="checkoutFormLoggedIn" class="bg-white p-4 rounded-bottom shadow-sm">
+                                    <input type="hidden" name="_csrf" value="<%= typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '') %>">
+                                    <input type="hidden" name="pid"
+                                        value="<%= selectedProduct ? selectedProduct.pid : '' %>">
+                                    <input type="hidden" name="gid"
+                                        value="<%= selectedProduct ? (selectedProduct.groupSlug || selectedProduct.groupId || '') : '' %>">
+
+                                    <!-- Choose Account Section -->
+                                    <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                        <h5 class="fw-bold mb-3">Choose Account</h5>
+
+                                        <!-- Selected Account -->
+                                        <div class="form-check mb-3 p-3 border rounded"
+                                            style="background-color: #f8f9fa;">
+                                            <input class="form-check-input" type="radio" name="accountType"
+                                                id="accountExisting" value="existing" checked>
+                                            <label class="form-check-label w-100" for="accountExisting">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                                            <strong>
+                                                                <%= checkoutProfile?.firstname || '' %>
+                                                                    <%= checkoutProfile?.lastname || '' %>
+                                                            </strong>
+                                                            <span class="badge bg-primary">me</span>
+                                                        </div>
+                                                        <div class="text-muted small">
+                                                            <%= checkoutProfile?.address1 || '' %>
+                                                                <% if (checkoutProfile?.address2) { %>, <%=
+                                                                        checkoutProfile?.address2 %>
+                                                                        <% } %><br>
+                                                                            <%= (checkoutProfile?.cityDisplay || checkoutProfile?.city || '') %>
+                                                                                <% if (checkoutProfile?.stateDisplay || checkoutProfile?.state) { %>, <%=
+                                                                                        (checkoutProfile?.stateDisplay || checkoutProfile?.state || '') %>
+                                                                                        <% } %>
+                                                                                            <%= checkoutProfile?.postcode
+                                                                                                || '' %>
+                                                                                                <% if
+                                                                                                    (checkoutProfile?.countryDisplay || checkoutProfile?.country)
+                                                                                                    { %>, <%=
+                                                                                                        (checkoutProfile?.countryDisplay || checkoutProfile?.country || '') %>
+                                                                                                        %>
+                        <% } %>
+                                                        </div>
+                                                    </div>
+                                                    <i class="fas fa-check-circle text-primary"></i>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Create New Account Option -->
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="radio" name="accountType"
+                                                id="accountNew" value="new">
+                                            <label class="form-check-label" for="accountNew">
+                                                Create a New Account
+                                            </label>
+                                        </div>
+
+                                        <!-- New Account Form (Hidden by default) -->
+                                        <div id="newAccountForm" style="display: none;"
+                                            class="border-top border-2 border-dashed pt-4 mt-4">
+                                            <!-- Personal Information -->
+                                            <div class="mb-4">
+                                                <h5 class="fw-bold mb-3">Personal Information</h5>
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">
+                                                            <i class="fas fa-user text-danger me-2"></i>First Name <span
+                                                                class="text-danger">*</span>
+                                                        </label>
+                                                        <input type="text" class="form-control" name="firstname_new">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">
+                                                            <i class="fas fa-user text-danger me-2"></i>Last Name <span
+                                                                class="text-danger">*</span>
+                                                        </label>
+                                                        <input type="text" class="form-control" name="lastname_new">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">
+                                                            <i class="fas fa-envelope text-danger me-2"></i>Email
+                                                            Address <span class="text-danger">*</span>
+                                                        </label>
+                                                        <input type="email" class="form-control" name="email_new">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">
+                                                            <i class="fas fa-phone text-danger me-2"></i>Phone Number
+                                                            <span class="text-danger">*</span>
+                                                        </label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text" id="phoneCode_new">+1</span>
+                                                            <input type="tel" class="form-control"
+                                                                name="phonenumber_new">
+                                                        </div>
+                                                    </div>
+                    </div>
+                </div>
+
+                                            <!-- Billing Address -->
+                                            <div class="mb-4">
+                                                <h5 class="fw-bold mb-3">Billing Address</h5>
+                                                <div class="row g-3">
+                                                    <div class="col-12">
+                                                        <label class="form-label">Company Name (Optional)</label>
+                                                        <input type="text" class="form-control" name="companyname_new">
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label">Street Address <span
+                                                                class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" name="address1_new">
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label">Street Address 2</label>
+                                                        <input type="text" class="form-control" name="address2_new">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Country <span
+                                                                class="text-danger">*</span></label>
+                                                        <select class="form-select" name="country_new" id="country_new">
+                                                            <option value="">-- Country --</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">State/Province/Region <span
+                                                                class="text-danger">*</span></label>
+                                                        <select class="form-select" name="state_new" id="state_new">
+                                                            <option value="">-- State --</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">City <span
+                                                                class="text-danger">*</span></label>
+                                                        <select class="form-select" name="city_new" id="city_new">
+                                                            <option value="">-- City --</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Zip/Postal Code <span
+                                                                class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" name="postcode_new">
+                                                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+                                    <!-- Domain Registrant Information -->
+                                    <% if (hasDomainItems) { %>
+                                        <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                            <h5 class="fw-bold mb-3">Domain Registrant Information</h5>
+                                            <p class="text-muted mb-3">You may specify alternative registered contact
+                                                details for the domain registration(s) in your order when placing an
+                                                order on behalf of another person or entity. If you do not require this,
+                                                you can skip this section.</p>
+                                            <select class="form-select" name="domainRegistrantType">
+                                                <option value="default" selected>Use Default Contact (Details Above)
+                                                </option>
+                                                <option value="custom">Use Custom Contact Details</option>
+                                            </select>
+                                        </div>
+                                        <% } %>
+
+                                            <!-- Payment Details -->
+                                            <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                                <h5 class="fw-bold mb-3">Payment Details</h5>
+                                                <div class="alert alert-success p-3">
+                                                    <strong>Total Due Today: <%= cartHasItems ? (currentCurrency.prefix + finalTotal.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code)) : defaultDisplay %></strong>
+                                                </div>
+                                            </div>
+
+                                            <!-- Preferred Method of Payment -->
+                                            <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                                <h5 class="fw-bold mb-3">Preferred Method of Payment</h5>
+                                                <p class="text-muted mb-3">Please choose your preferred method of
+                                                    payment.</p>
+                                                <% 
+                                                const enabledGatewaysLoggedIn = typeof enabledPaymentGateways !== 'undefined' && Array.isArray(enabledPaymentGateways) ? enabledPaymentGateways : [];
+                                                if (enabledGatewaysLoggedIn.length > 0) {
+                                                    enabledGatewaysLoggedIn.forEach(function(gateway, index) {
+                                                        const isFirst = index === 0;
+                                                        const gatewayId = 'paymentLoggedIn' + gateway.gateway.charAt(0).toUpperCase() + gateway.gateway.slice(1);
+                                                        const gatewayLabel = gateway.display_name || gateway.name;
+                                                        const gatewayModule = gateway.module || '';
+                                                %>
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="radio" name="paymentmethod"
+                                                        id="<%= gatewayId %>" value="<%= gateway.gateway %>" <%= isFirst ? 'checked' : '' %>>
+                                                    <label class="form-check-label" for="<%= gatewayId %>">
+                                                        <%= gatewayLabel %><% 
+                                                        // Add descriptive text for certain gateways
+                                                        if (gateway.gateway === 'paypal') { %> (International)<% 
+                                                        } else if (gateway.gateway === 'stripe' || gateway.gateway === 'card') { %> (International Payment)<% 
+                                                        } else if (gateway.gateway === 'phonepe' || gateway.gateway === 'razorpay' || gateway.gateway === 'banktransfer') { %> (Indian Payment)<% 
+                                                        } %>
+                                                    </label>
+                                                </div>
+                                                <% 
+                                                    });
+                                                } else {
+                                                %>
+                                                <div class="alert alert-warning">
+                                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                                    No payment methods are currently available. Please contact support.
+                                                </div>
+                                                <% } %>
+                                            </div>
+
+                                            <!-- Additional Notes -->
+                                            <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                                <h5 class="fw-bold mb-3">Additional Notes</h5>
+                                                <p class="text-muted mb-3">You can enter any additional notes or
+                                                    information you want included with your order here...</p>
+                                                <textarea name="notes" class="form-control" rows="4"
+                                                    placeholder="Enter any special instructions or notes..."></textarea>
+                                            </div>
+
+                                            <!-- Terms of Service -->
+                                            <div class="border-top border-2 border-dashed pt-4 mb-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="terms"
+                                                        id="termsLoggedIn" required>
+                                                    <label class="form-check-label" for="termsLoggedIn">
+                                                        I have read and agree to the <a href="/terms"
+                                                            target="_blank">Terms of Service</a> <span
+                                                            class="text-danger">*</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <!-- Complete Order Button -->
+                                            <div class="text-center mb-4">
+                                                <button type="submit" class="btn btn-danger btn-lg px-5" <%=(cartIsEmpty
+                                                    || !cartHasItems) ? 'disabled' : '' %>>
+                                                    Complete Order →
+                                                </button>
+                                            </div>
+
+                                            <!-- Security Banner -->
+                                            <div class="alert alert-warning mb-0">
+                                                <i class="fas fa-lock me-2"></i>
+                                                <small>This order form is provided in a secure environment and to help
+                                                    protect against fraud your current IP address (<%= typeof clientIp
+                                                        !=='undefined' ? clientIp : 'N/A' %>) is being logged.</small>
+                                            </div>
+                                </form>
+                            </div>
+
+                            <!-- Right Sidebar - Order Summary -->
+                            <div class="col-lg-4">
+                                <div class="card shadow-sm sticky-top" style="top: 20px;">
+                                    <div class="card-header bg-white">
+                                        <h6 class="mb-0">Order Summary</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <% if (cartHasItems) { %>
+                                            <ul class="list-group list-group-flush mb-3">
+                                                <% cart.items.forEach(function(item, index) { %>
+                                                    <li
+                                                        class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                        <div class="flex-grow-1">
+                                                            <strong class="d-block">
+                                                                <%= item.name %>
+                                                            </strong>
+                                                            <small class="text-muted">
+                                                                <% if (item.type==='domain' ) { %>
+                                                                    Domain <%= item.domainMode==='register'
+                                                                        ? 'Registration' : item.domainMode==='transfer'
+                                                                        ? 'Transfer' : 'Renewal' %>
+                                                                        <% } else { %>
+                                                                            <% 
+                                                                                const cycleLabels = {
+                                                                                    'monthly': 'Billed monthly',
+                                                                                    'quarterly': 'Billed quarterly',
+                                                                                    'semiannually': 'Billed semi-annually',
+                                                                                    'annually': 'Billed yearly',
+                                                                                    'biennially': 'Billed biennially',
+                                                                                    'triennially': 'Billed triennially'
+                                                                                };
+                                                                                const cycleDisplay = cycleLabels[item.billingCycle] || (item.billingCycle ? 'Billed ' + item.billingCycle : 'Billed monthly');
+                                                                            %>
+                                                                            <%= cycleDisplay %>
+                                                                                <% } %>
+                                                            </small>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-3">
+                                                            <span class="fw-semibold">
+                                                                <%= item.price.display %>
+                                                            </span>
+                                                            <form method="post"
+                                                                action="/orderforms/<%= formId %>/cart/remove/<%= item.id %>"
+                                                                class="d-inline remove-item-form"
+                                                                data-item-id="<%= item.id %>"
+                                                                onsubmit="return false;">
+                                                                <input type="hidden" name="_csrf" value="<%= typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '') %>">
+                                                                <button type="button"
+                                                                    class="btn btn-link text-danger p-0 remove-item-btn"
+                                                                    style="line-height: 1;" title="Remove item"
+                                                                    data-form-action="/orderforms/<%= formId %>/cart/remove/<%= item.id %>">
+                    <i class="fas fa-trash-alt"></i>
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </li>
+                                                    <% }); %>
+                                            </ul>
+                                            <% } else { %>
+                                                <p class="text-muted mb-3">Your cart is empty.</p>
+                                                <% } %>
+
+                                                <% if (cartHasItems) { %>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span>Subtotal</span>
+                                                        <span><%= currentCurrency.prefix + subtotal.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code) %></span>
+                                                    </div>
+                                                    <% if (hasPromotion && discountAmount > 0) { %>
+                                                    <div class="d-flex justify-content-between mb-2 text-success">
+                                                        <span>Promotion (<%= cart.promotion.code %>)</span>
+                                                        <span>-<%= currentCurrency.prefix + discountAmount.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code) %></span>
+                                                    </div>
+                                                    <% } %>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <% if (taxAmount > 0) { %>
+                                                        <span>Tax <% if (typeof taxCalculation !== 'undefined' && taxCalculation && taxCalculation.taxRateLevel2 > 0) { %>
+                                            @ <%= taxCalculation.taxRateLevel1.toFixed(2) %>% + <%= taxCalculation.taxRateLevel2.toFixed(2) %>% (Compound)
+                                        <% } else { %>
+                                            @ <%= taxRate.toFixed(2) %>%
+                                        <% } %></span>
+                                                        <span><%= currentCurrency.prefix + taxAmount.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code) %></span>
+                                                        <% } %>
+                                                    </div>
+                                                    <hr>
+                                                <% } %>
+
+                                                    <div
+                                                        class="d-flex justify-content-between align-items-center border-top pt-3">
+                                                        <span class="fw-semibold">Total Due Today</span>
+                                                        <span class="fw-bold fs-5">
+                                                            <%= cartHasItems ? (currentCurrency.prefix + finalTotal.toFixed(2) + (currentCurrency.suffix || ' ' + currentCurrency.code)) : defaultDisplay %>
+                                                        </span>
+                                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <% } %>
+    </div>
+</div>
+
+<!-- Generated Password Modal -->
+<div class="modal fade" id="generatedPasswordModal" tabindex="-1" aria-labelledby="generatedPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15); position: relative;">
+            <!-- Close button in top-right corner -->
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                style="position: absolute; top: 1rem; right: 1rem; background-color: #6c757d; opacity: 1; border-radius: 50%; width: 30px; height: 30px; padding: 0; z-index: 10;">
+                <span aria-hidden="true" style="color: white; font-size: 18px; line-height: 30px;">&times;</span>
+            </button>
+            <div class="modal-body text-center" style="padding: 2rem 2rem 1rem;">
+                <div class="mb-3">
+                    <i class="fas fa-key" style="font-size: 64px; color: #28a745; opacity: 0.8;"></i>
+                </div>
+                <h5 class="modal-title mb-3" id="generatedPasswordModalLabel"
+                    style="color: #28a745; font-weight: 600; font-size: 24px;">Password Generated</h5>
+                <p class="text-muted mb-3" style="font-size: 14px; color: #6c757d;">
+                    Your secure password has been generated. Click the copy button to copy it to your clipboard.
+                </p>
+                <div class="input-group mb-3" style="max-width: 400px; margin: 0 auto;">
+                    <input type="text" class="form-control text-center fw-bold" id="generatedPasswordDisplay" 
+                        readonly style="font-size: 18px; letter-spacing: 2px; font-family: 'Courier New', monospace;">
+                    <button class="btn btn-primary" type="button" id="copyPasswordBtn" 
+                        style="border-radius: 0 8px 8px 0;">
+                        <i class="fas fa-copy me-2"></i>Copy
+                    </button>
+                </div>
+                <div class="alert alert-success d-none" id="passwordCopiedAlert" role="alert" style="margin-top: 1rem;">
+                    <i class="fas fa-check-circle me-2"></i>Password copied to clipboard!
+                </div>
+                <div class="d-flex justify-content-center mt-4" style="gap: 1rem;">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal"
+                        style="border-radius: 8px; min-width: 100px;">
+                        Close
+                    </button>
+                    <button type="button" class="btn btn-success px-4" id="usePasswordBtn"
+                        style="border-radius: 8px; min-width: 100px;">
+                        <i class="fas fa-check me-2"></i>Use This Password
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remove Item Confirmation Modal -->
+<div class="modal fade" id="removeItemModal" tabindex="-1" aria-labelledby="removeItemModalLabel" aria-hidden="true" style="z-index: 20000;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.15); position: relative; pointer-events: auto;">
+            <button type="button" id="closeRemoveModalBtn" aria-label="Close"
+                style="position: absolute; top: 1rem; right: 1rem; background-color: #ff6b6b; border: none; border-radius: 50%; width: 30px; height: 30px; padding: 0; z-index: 10; color: #fff; font-size: 18px; line-height: 30px; cursor: pointer;">
+                &times;
+            </button>
+            <div class="modal-body text-center" style="padding: 2rem;">
+                <div class="mb-3">
+                    <i class="fas fa-trash-alt" style="font-size: 64px; color: #ff6b6b; opacity: 0.8;"></i>
+                </div>
+                <h5 class="modal-title mb-3" id="removeItemModalLabel"
+                    style="color: #dc3545; font-weight: 600; font-size: 24px;">Remove Item</h5>
+                <p class="text-muted mb-4 remove-modal-message" style="font-size: 16px; color: #6c757d;">
+                    Are you sure you want to remove this item from your cart?
+                </p>
+                <div class="row g-3 justify-content-center">
+                    <div class="col-5">
+                        <button type="button" class="btn btn-outline-secondary w-100" id="cancelRemoveBtn">No</button>
+                    </div>
+                    <div class="col-5">
+                        <button type="button" class="btn btn-primary w-100" id="confirmRemoveBtn">Yes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        // Toggle "Create New Account" form for logged-in users
+        const accountExisting = document.getElementById('accountExisting');
+        const accountNew = document.getElementById('accountNew');
+        const newAccountForm = document.getElementById('newAccountForm');
+
+        if (accountExisting && accountNew && newAccountForm) {
+            function toggleNewAccountForm() {
+                if (accountNew.checked) {
+                    newAccountForm.style.display = 'block';
+                    // Make new account fields required
+                    const requiredFields = newAccountForm.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], select');
+                    requiredFields.forEach(field => {
+                        if (field.name && field.name.includes('_new') && !field.name.includes('companyname')) {
+                            field.required = true;
+                        }
+                    });
+                } else {
+                    newAccountForm.style.display = 'none';
+                    // Remove required attribute
+                    const requiredFields = newAccountForm.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], select');
+                    requiredFields.forEach(field => {
+                        field.required = false;
+                    });
+                }
+            }
+
+            accountExisting.addEventListener('change', toggleNewAccountForm);
+            accountNew.addEventListener('change', toggleNewAccountForm);
+        }
+
+        // Generate Password (for non-logged-in users)
+        const generatePasswordBtn = document.getElementById('generatePassword');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.querySelector('input[name="confirmPassword"]');
+        const generatedPasswordModal = document.getElementById('generatedPasswordModal');
+        const generatedPasswordDisplay = document.getElementById('generatedPasswordDisplay');
+        const copyPasswordBtn = document.getElementById('copyPasswordBtn');
+        const usePasswordBtn = document.getElementById('usePasswordBtn');
+        const passwordCopiedAlert = document.getElementById('passwordCopiedAlert');
+
+        function generateSecurePassword() {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+            let password = '';
+            for (let i = 0; i < 12; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return password;
+        }
+
+        function showPasswordModal(password) {
+            if (generatedPasswordDisplay) {
+                generatedPasswordDisplay.value = password;
+            }
+            
+            // Hide copied alert if visible
+            if (passwordCopiedAlert) {
+                passwordCopiedAlert.classList.add('d-none');
+            }
+
+            // Show modal using Bootstrap if available, otherwise use vanilla JS
+            if (generatedPasswordModal) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const bsModal = new bootstrap.Modal(generatedPasswordModal);
+                    bsModal.show();
+                } else {
+                    // Fallback: show modal manually
+                    generatedPasswordModal.style.display = 'block';
+                    generatedPasswordModal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    backdrop.id = 'generatedPasswordModalBackdrop';
+                    document.body.appendChild(backdrop);
+                }
+            }
+        }
+
+        function closePasswordModal() {
+            if (generatedPasswordModal) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    try {
+                        const bsModal = bootstrap.Modal.getInstance(generatedPasswordModal);
+                        if (bsModal) {
+                            bsModal.hide();
+                            // Ensure backdrop is removed after Bootstrap hides modal
+                            setTimeout(function() {
+                                const backdrops = document.querySelectorAll('.modal-backdrop');
+                                backdrops.forEach(function(backdrop) {
+                                    if (backdrop.parentNode) {
+                                        backdrop.remove();
+                                    }
+                                });
+                                document.body.classList.remove('modal-open');
+                                document.body.style.overflow = '';
+                                document.body.style.paddingRight = '';
+                            }, 300);
+                        } else {
+                            const newModal = new bootstrap.Modal(generatedPasswordModal);
+                            newModal.hide();
+                            setTimeout(function() {
+                                const backdrops = document.querySelectorAll('.modal-backdrop');
+                                backdrops.forEach(function(backdrop) {
+                                    if (backdrop.parentNode) {
+                                        backdrop.remove();
+                                    }
+                                });
+                                document.body.classList.remove('modal-open');
+                                document.body.style.overflow = '';
+                                document.body.style.paddingRight = '';
+                            }, 300);
+                        }
+                    } catch (e) {
+                        console.error('Error closing modal:', e);
+                        hidePasswordModalManually();
+                    }
+                } else {
+                    hidePasswordModalManually();
+                }
+            }
+        }
+
+        function hidePasswordModalManually() {
+            if (generatedPasswordModal) {
+                generatedPasswordModal.style.display = 'none';
+                generatedPasswordModal.classList.remove('show');
+            }
+            // Remove all modal backdrops
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(function(backdrop) {
+                if (backdrop.parentNode) {
+                    backdrop.remove();
+                }
+            });
+            // Also remove specific backdrop if exists
+            const specificBackdrop = document.getElementById('generatedPasswordModalBackdrop');
+            if (specificBackdrop && specificBackdrop.parentNode) {
+                specificBackdrop.remove();
+            }
+            // Unlock body
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+
+        if (generatePasswordBtn) {
+            generatePasswordBtn.addEventListener('click', function () {
+                const password = generateSecurePassword();
+                showPasswordModal(password);
+            });
+        }
+
+        // Copy password to clipboard
+        if (copyPasswordBtn && generatedPasswordDisplay) {
+            copyPasswordBtn.addEventListener('click', function () {
+                const password = generatedPasswordDisplay.value;
+                if (password) {
+                    // Copy to clipboard
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(password).then(function() {
+                            // Show success message
+                            if (passwordCopiedAlert) {
+                                passwordCopiedAlert.classList.remove('d-none');
+                                setTimeout(function() {
+                                    passwordCopiedAlert.classList.add('d-none');
+                                }, 3000);
+                            }
+                            // Update button text temporarily
+                            const originalHtml = copyPasswordBtn.innerHTML;
+                            copyPasswordBtn.innerHTML = '<i class="fas fa-check me-2"></i>Copied!';
+                            setTimeout(function() {
+                                copyPasswordBtn.innerHTML = originalHtml;
+                            }, 2000);
+                        }).catch(function(err) {
+                            console.error('Failed to copy password:', err);
+                            alert('Failed to copy password. Please copy it manually.');
+                        });
+                    } else {
+                        // Fallback for older browsers
+                        generatedPasswordDisplay.select();
+                        generatedPasswordDisplay.setSelectionRange(0, 99999);
+                        try {
+                            document.execCommand('copy');
+                            if (passwordCopiedAlert) {
+                                passwordCopiedAlert.classList.remove('d-none');
+                                setTimeout(function() {
+                                    passwordCopiedAlert.classList.add('d-none');
+                                }, 3000);
+                            }
+                        } catch (err) {
+                            alert('Failed to copy password. Please copy it manually.');
+                        }
+                    }
+                }
+            });
+        }
+
+        // Use password button - fills the password fields and closes modal
+        if (usePasswordBtn && passwordInput) {
+            usePasswordBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const password = generatedPasswordDisplay ? generatedPasswordDisplay.value : '';
+                if (password) {
+                    // Fill password fields
+                    passwordInput.value = password;
+                    if (confirmPasswordInput) {
+                        confirmPasswordInput.value = password;
+                    }
+                    // Update password strength indicator
+                    updatePasswordStrength(password);
+                    
+                    // Close modal with a small delay to ensure fields are updated
+                    setTimeout(function() {
+                        closePasswordModal();
+                    }, 100);
+                } else {
+                    alert('No password generated. Please try again.');
+                }
+            });
+        }
+
+        // Close modal on backdrop click
+        if (generatedPasswordModal) {
+            generatedPasswordModal.addEventListener('click', function (e) {
+                if (e.target === generatedPasswordModal) {
+                    closePasswordModal();
+                }
+            });
+        }
+
+        // Also handle close button click
+        const closePasswordModalBtn = generatedPasswordModal ? generatedPasswordModal.querySelector('.btn-close') : null;
+        if (closePasswordModalBtn) {
+            closePasswordModalBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closePasswordModal();
+            });
+        }
+
+        // Handle "Close" button in modal
+        const closePasswordBtn = generatedPasswordModal ? generatedPasswordModal.querySelector('button[data-bs-dismiss="modal"]') : null;
+        if (closePasswordBtn) {
+            closePasswordBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closePasswordModal();
+            });
+        }
+
+        // Password Strength Checker
+        function updatePasswordStrength(password) {
+            const strengthBar = document.getElementById('passwordStrength');
+            const strengthText = document.getElementById('passwordStrengthText');
+            if (!strengthBar || !strengthText) return;
+
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+            if (password.match(/\d/)) strength++;
+            if (password.match(/[^a-zA-Z\d]/)) strength++;
+
+            const percentages = [0, 25, 50, 75, 100];
+            const colors = ['danger', 'danger', 'warning', 'success', 'success'];
+            const texts = ['Very Weak', 'Weak', 'Moderate', 'Strong', 'Very Strong'];
+
+            strengthBar.style.width = percentages[strength] + '%';
+            strengthBar.className = 'progress-bar bg-' + colors[strength];
+            strengthText.textContent = texts[strength];
+        }
+
+        if (passwordInput) {
+            passwordInput.addEventListener('input', function () {
+                updatePasswordStrength(this.value);
+            });
+        }
+
+        // Form Validation for non-logged-in users
+        const checkoutForm = document.getElementById('checkoutForm');
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', function (e) {
+                const password = passwordInput?.value;
+                const confirmPassword = confirmPasswordInput?.value;
+
+                if (password && confirmPassword && password !== confirmPassword) {
+                    e.preventDefault();
+                    alert('Passwords do not match!');
+                    return false;
+                }
+            });
+        }
+
+        // Form submission handler for logged-in users - handle new account data
+        const checkoutFormLoggedIn = document.getElementById('checkoutFormLoggedIn');
+        if (checkoutFormLoggedIn) {
+            checkoutFormLoggedIn.addEventListener('submit', function (e) {
+                if (accountNew && accountNew.checked) {
+                    // Map new account fields to regular field names for backend processing
+                    const newAccountFields = newAccountForm.querySelectorAll('input, select');
+                    newAccountFields.forEach(field => {
+                        if (field.name && field.name.includes('_new')) {
+                            const originalName = field.name.replace('_new', '');
+                            const hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = originalName;
+                            hiddenInput.value = field.value;
+                            checkoutFormLoggedIn.appendChild(hiddenInput);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Remove item modal handler
+        const csrfToken = (typeof window.csrfToken === 'string' && window.csrfToken)
+            ? window.csrfToken
+            : <%- JSON.stringify(typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '')) %>;
+
+        let removeUrl = null;
+        const removeItemModal = document.getElementById('removeItemModal');
+        if (removeItemModal && removeItemModal.parentElement !== document.body) {
+            document.body.appendChild(removeItemModal);
+        }
+
+        function hideRemoveModal() {
+            const modal = document.getElementById('removeItemModal');
+            if (modal) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal && typeof bootstrap.Modal.getInstance === 'function') {
+                    const inst = bootstrap.Modal.getInstance(modal);
+                    if (inst) {
+                        try { inst.dispose(); } catch (err) { /* ignore */ }
+                    }
+                }
+                modal.classList.remove('show');
+                modal.style.display = 'none';
+                modal.setAttribute('aria-hidden', 'true');
+                modal.removeAttribute('aria-modal');
+            }
+            document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.remove(); });
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+            removeUrl = null;
+            const confirmBtn = document.getElementById('confirmRemoveBtn');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Yes';
+            }
+        }
+
+        function showRemoveModal() {
+            const modal = document.getElementById('removeItemModal');
+            if (!modal) return;
+            if (modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+            modal.classList.add('show');
+            modal.style.display = 'block';
+            modal.style.zIndex = '20000';
+            modal.removeAttribute('aria-hidden');
+            modal.setAttribute('aria-modal', 'true');
+            document.body.classList.add('modal-open');
+            if (!document.getElementById('removeItemModalBackdrop')) {
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.id = 'removeItemModalBackdrop';
+                backdrop.style.zIndex = '19990';
+                document.body.appendChild(backdrop);
+            }
+        }
+
+        function submitRemove() {
+            if (!removeUrl) return;
+            const confirmBtn = document.getElementById('confirmRemoveBtn');
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Removing...';
+            }
+            const tempForm = document.createElement('form');
+            tempForm.method = 'POST';
+            tempForm.action = removeUrl;
+            if (csrfToken) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = '_csrf';
+                input.value = csrfToken;
+                tempForm.appendChild(input);
+            }
+            document.body.appendChild(tempForm);
+            tempForm.submit();
+        }
+
+        document.addEventListener('click', function (e) {
+            const removeBtn = e.target.closest('.remove-item-btn');
+            if (removeBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const form = removeBtn.closest('form');
+                removeUrl = form ? form.getAttribute('action') : removeBtn.getAttribute('data-form-action');
+                const modal = document.getElementById('removeItemModal');
+                if (modal) {
+                    const titleEl = modal.querySelector('#removeItemModalLabel');
+                    const messageEl = modal.querySelector('.remove-modal-message');
+                    if (titleEl) titleEl.textContent = removeBtn.getAttribute('data-confirm-title') || 'Remove Item';
+                    if (messageEl) messageEl.textContent = removeBtn.getAttribute('data-confirm-message') || 'Are you sure you want to remove this item from your cart?';
+                    showRemoveModal();
+                }
+                return;
+            }
+
+            if (e.target.closest('#confirmRemoveBtn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                submitRemove();
+                return;
+            }
+
+            if (e.target.closest('#cancelRemoveBtn') || e.target.closest('#closeRemoveModalBtn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                hideRemoveModal();
+                return;
+            }
+
+            if (e.target.id === 'removeItemModal' || e.target.id === 'removeItemModalBackdrop') {
+                hideRemoveModal();
+            }
+        });
+        })();
+    </script>
+
+    <!-- Location Utils for dynamic country/state/city selection -->
+    <script src="/js/location-utils.js"></script>
+    <script>
+        (function() {
+            // Initialize location dropdowns for non-logged-in users
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize for main checkout form (non-logged-in)
+                if (typeof LocationUtils !== 'undefined') {
+                    LocationUtils.initLocationDropdowns({
+                        countrySelectId: 'country',
+                        stateSelectId: 'state',
+                        citySelectId: 'city',
+                        phoneCodeElementId: 'phoneCode'
+                    });
+                }
+
+                // Initialize for new account form (logged-in users)
+                if (typeof LocationUtils !== 'undefined') {
+                    // Wait for new account form to be visible before initializing
+                    const accountNew = document.getElementById('accountNew');
+                    const newAccountForm = document.getElementById('newAccountForm');
+                    
+                    if (accountNew && newAccountForm) {
+                        // Initialize when form becomes visible
+                        function initNewAccountLocation() {
+                            if (newAccountForm.style.display !== 'none') {
+                                LocationUtils.initLocationDropdowns({
+                                    countrySelectId: 'country_new',
+                                    stateSelectId: 'state_new',
+                                    citySelectId: 'city_new',
+                                    phoneCodeElementId: 'phoneCode_new'
+                                });
+                            }
+                        }
+
+                        // Initialize on account type change
+                        accountNew.addEventListener('change', function() {
+                            if (this.checked) {
+                                setTimeout(initNewAccountLocation, 100);
+                            }
+                        });
+
+                        // Also try to initialize if form is already visible
+                        if (newAccountForm.style.display !== 'none') {
+                            setTimeout(initNewAccountLocation, 100);
+                        }
+                    }
+                }
+            });
+        })();
+    </script>

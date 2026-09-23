@@ -1,0 +1,120 @@
+<%
+  const lastProductData = typeof lastProduct !== 'undefined' ? lastProduct : null;
+  const recommendationData = typeof productRecommendations !== 'undefined' ? productRecommendations : null;
+  const recommendationStyle = typeof recommendStyle !== 'undefined' ? recommendStyle : null;
+  const templateName = typeof templatefile !== 'undefined' ? templatefile : 'products';
+%>
+<% if (lastProductData) { %>
+<div class="product-added-panel panel card">
+    <div class="panel-body card-body">
+        <span class="text-muted">
+            <i class="far fa-check"></i>&nbsp;<%= lang.recommendations?.productAdded || 'Product Added' %>
+        </span>
+        <div>
+            <span class="product-name">&nbsp;<%= lastProductData.product?.name || '' %></span>
+            <span class="product-group">&nbsp;<%= lastProductData.product?.productGroup?.name || '' %></span>
+        </div>
+        <div>
+            <span class="product-price">
+                <% if (lastProductData.pricing && !lastProductData.pricing.isFree) { %>
+                    &nbsp;<%= lastProductData.pricing.price || '' %>
+                    <% if (lastProductData.pricing.setup && parseFloat(lastProductData.pricing.setup) > 0) { %>
+                        + <%= lastProductData.pricing.setup %> <%= lang.ordersetupfee || 'Setup Fee' %>
+                    <% } %>
+                <% } %>
+            </span>
+            <span class="product-cycle">&nbsp;<%= lang['orderpaymentterm' + (lastProductData.pricing?.cycle || '')] || lastProductData.pricing?.cycle || '' %></span>
+        </div>
+    </div>
+</div>
+<% } %>
+<div class="product-recommendations-container">
+    <div class="product-recommendations">
+        <% if (templateName !== 'viewcart' && templateName !== 'checkout' && templateName !== 'complete') { %>
+            <p><%= lang.recommendations?.explain?.product || 'We recommend these products' %></p>
+        <% } else if (!recommendationStyle && templateName !== 'complete') { %>
+            <p><%= lang.recommendations?.explain?.generic || 'Recommended products' %></p>
+        <% } else if (templateName === 'complete') { %>
+            <div>
+                <h4 class="float-left pull-left"><%= lang.recommendations?.title?.generic || 'Recommendations' %></h4>
+                <h4 class="text-muted float-right pull-right">
+                    <small>
+                        <% if (recommendationData && recommendationData.order && recommendationData.order.length > 0) { %>
+                            <%= lang.recommendations?.title?.yourOrder || 'Your Order' %>
+                        <% } else { %>
+                            <%= lang.recommendations?.title?.yourProducts || 'Your Products' %>
+                        <% } %>
+                    </small>
+                </h4>
+                <div class="clearfix"></div>
+            </div>
+        <% } %>
+        <% if (recommendationData) { %>
+            <% Object.keys(recommendationData).forEach(categoryKey => { %>
+                <% const categoryRecommendations = recommendationData[categoryKey]; %>
+                <% if (templateName === 'complete' && categoryKey === 'own' && recommendationData.own && recommendationData.own.length > 0 && recommendationData.order && recommendationData.order.length > 0) { %>
+                    <h4 class="text-muted float-right pull-right">
+                        <small><%= lang.recommendations?.title?.yourProducts || 'Your Products' %></small>
+                    </h4>
+                    <div class="clearfix"></div>
+                <% } %>
+                <% categoryRecommendations.forEach(categoryRecommendation => { %>
+                    <% if (recommendationStyle && templateName !== 'complete') { %>
+                        <p><%= (lang.recommendations?.explain?.ordered || 'You ordered').replace('{productName}', categoryRecommendation.name) %></p>
+                    <% } %>
+                    <% if (categoryRecommendation.recommendations && categoryRecommendation.recommendations.length > 0) { %>
+                        <% categoryRecommendation.recommendations.forEach(recommendation => { %>
+                            <% const price = recommendation.pricing?.first || recommendation.pricing; %>
+                            <div class="product-recommendation" data-color="<%= recommendation.color || '#246dec' %>" style="border-color:<%= recommendation.color || '#246dec' %>;">
+                                <div class="header<%= !recommendation.shortDescription ? ' header-static' : '' %>">
+                                    <div class="cta">
+                                        <div class="price" style="color:<%= recommendation.color || '#246dec' %>;">
+                                            <span <%= !recommendation.isFree ? 'class="w-hidden hidden"' : '' %>><%= lang.orderfree || 'Free' %></span>
+                                            <% if (!recommendation.isFree && price) { %>
+                                                <span class="breakdown-price">
+                                                    <% if (price.isOneTime) { %>
+                                                        <%= price.price || '' %>
+                                                    <% } else if (price.isRecurring) { %>
+                                                        <%= price.breakdownPrice || price.price || '' %>
+                                                    <% } %>
+                                                </span>
+                                            <% } %>
+                                            <% if (!recommendation.isFree && price && price.setup && parseFloat(price.setup) > 0) { %>
+                                                <span class="setup-fee"><small><%= price.setup %>&nbsp;<%= lang.ordersetupfee || 'Setup Fee' %></small></span>
+                                            <% } %>
+                                        </div>
+                                        <a type="button" class="btn btn-sm btn-add" href="<%= recommendation.routePath || '#' %>" role="button" style="background-color:<%= recommendation.color || '#246dec' %>;">
+                                            <span class="text">
+                                                <%= lang.addtocart || 'Add to Cart' %>
+                                            </span>
+                                            <span class="arrow" style="background-color:<%= recommendation.color || '#246dec' %>;">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </span>
+                                        </a>
+                                    </div>
+                                    <div class="expander" style="color:<%= recommendation.color || '#246dec' %>;">
+                                        <% if (recommendation.shortDescription) { %>
+                                            <i class="fas fa-chevron-right rotate" data-toggle="tooltip" data-placement="right" title="<%= lang.recommendations?.learnMore || 'Learn More' %>"></i>
+                                        <% } else { %>
+                                            <i class="fas fa-square fa-xs"></i>
+                                        <% } %>
+                                    </div>
+                                    <div class="content">
+                                        <div class="headline truncate"><%= (recommendation.productGroup?.name || '') + ' - ' + (recommendation.name || '') %></div>
+                                        <div class="tagline truncate">
+                                            <%= recommendation.tagline || (lang.recommendations?.taglinePlaceholder || 'Product tagline') %>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="body clearfix">
+                                    <p><%= recommendation.shortDescription || '' %></p>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } %>
+                <% }); %>
+            <% }); %>
+        <% } %>
+    </div>
+</div>
+

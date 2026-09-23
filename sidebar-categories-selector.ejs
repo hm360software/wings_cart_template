@@ -1,0 +1,15 @@
+<% if (secondarySidebar && secondarySidebar.length > 0) { %>
+    <% secondarySidebar.forEach(panel => { %>
+        <% if (panel.children && panel.children.length > 0) { %>
+            <select class="form-control" onchange="if(this.value) window.location.href=this.value">
+                <option value=""><%= panel.label || 'Select' %></option>
+                <% panel.children.forEach(child => { %>
+                    <% if (child.uri) { %>
+                        <option value="<%= child.uri %>"<%= child.current ? ' selected' : '' %>><%= child.label || '' %></option>
+                    <% } %>
+                <% }); %>
+            </select>
+        <% } %>
+    <% }); %>
+<% } %>
+

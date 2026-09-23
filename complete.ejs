@@ -1,0 +1,44 @@
+<div id="order-standard_cart" class="order-complete py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-xl-6 col-lg-7 col-md-9">
+                <div class="card shadow-sm text-center">
+                    <div class="card-body p-5">
+                        <div class="text-success display-4 mb-3">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3 class="mb-2">Thank you for your order!</h3>
+                        <% if (completedOrder) { %>
+                            <p class="text-muted mb-4">
+                                Order <strong>#<%= completedOrder.orderNumber || completedOrder.orderId %></strong> has been submitted.
+                                We will notify you as soon as it is provisioned.
+                            </p>
+                            <ul class="list-group text-start mb-4">
+                                <% (completedOrder.items || []).forEach(function(item) { %>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><%= item.name %></span>
+                                        <strong><%= item.price.display %></strong>
+                                    </li>
+                                <% }); %>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Total Paid</span>
+                                    <strong><%= completedOrder.amountDisplay || '0.00' %></strong>
+                                </li>
+                            </ul>
+                        <% } else { %>
+                            <p class="text-muted mb-4">
+                                Your order has been received. You can review the details from your client area.
+                            </p>
+                        <% } %>
+
+                        <div class="d-flex flex-column gap-2">
+                            <a href="/clientarea/services?context=my" class="btn btn-primary">Go to My Services</a>
+                            <a href="/orderforms/wings_cart?step=products" class="btn btn-light">Order Another Service</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

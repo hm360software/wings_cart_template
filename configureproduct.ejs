@@ -1,0 +1,296 @@
+<%
+  const config = typeof productConfiguration !== 'undefined' ? productConfiguration : {};
+  const billingCycles = Array.isArray(config.billingCycles) ? config.billingCycles : [];
+  const configOptions = Array.isArray(config.configOptions) ? config.configOptions : [];
+  const customFields = Array.isArray(config.customFields) ? config.customFields : [];
+  const cartItems = (cart && Array.isArray(cart.items)) ? cart.items : [];
+  const requiresDomain = !!(selectedProduct && selectedProduct.requiresDomain);
+  const nextStepTarget = typeof nextStep !== 'undefined'
+    ? nextStep
+    : (requiresDomain ? 'domain' : 'review');
+%>
+
+<style>
+  /* See custom.css for layout styles */
+</style>
+
+<div id="order-standard_cart" class="order-configure py-4">
+  <div class="container-fluid">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+              <div>
+                <p class="text-uppercase text-muted small mb-1">Shopping Cart</p>
+                <h4 class="mb-0">Configure Your Plan</h4>
+                <p class="text-muted mb-0">
+                  Review product settings, choose billings cycles, and share any details we need before moving forward.
+                </p>
+              </div>
+              <% if (selectedProduct) { %>
+                <div class="text-end">
+                  <div class="text-uppercase text-muted small">Selected Plan</div>
+                  <div class="fw-semibold"><%= selectedProduct.name %></div>
+                  <div class="text-primary fw-bold"><%= selectedProduct.priceDisplay || selectedProduct.pricing?.minprice?.price || '' %></div>
+                </div>
+              <% } %>
+            </div>
+            <% if (requiresDomain) { %>
+              <div class="alert alert-info mt-3 mb-0">
+                <i class="fas fa-globe me-2"></i>This package requires a domain name. We'll help you add one on the next step.
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <form id="hm360ConfigureForm" action="/orderforms/<%= formId %>/configure" method="post">
+          <input type="hidden" name="_csrf" value="<%= typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '') %>">
+          <input type="hidden" name="pid" value="<%= selectedProduct ? selectedProduct.pid : '' %>">
+          <input type="hidden" name="gid" value="<%= selectedProduct ? (selectedProduct.groupSlug || selectedProduct.groupId || '') : '' %>">
+          <input type="hidden" name="nextStep" value="<%= nextStepTarget %>">
+
+          <% if (billingCycles.length) { %>
+            <div class="card shadow-sm mb-4">
+              <div class="card-header bg-white">
+                <h5 class="mb-0">Choose Billing Cycle</h5>
+              </div>
+          
+              <div class="card-body">
+                <label for="billingCycle" class="form-label">
+                  Billing Cycle
+                </label>
+          
+                <select class="form-select w-100" id="billingCycle" name="billingcycle" data-pricing='<%- JSON.stringify(
+                    typeof productConfiguration !== "undefined" &&
+                    productConfiguration.pricingData
+                      ? productConfiguration.pricingData
+                      : {}
+                  ) %>'>
+                  <% billingCycles.forEach(function(cycle, index) { %>
+                    <option value="<%= cycle.key %>" data-price="<%= cycle.value || 0 %>" data-display="<%= cycle.amount %>"
+                      data-label="<%= cycle.label %>" <%=index===0 ? "selected" : "" %>
+                      >
+                      <%= cycle.label %> — <%= cycle.amount %>
+                    </option>
+                    <% }) %>
+                </select>
+              </div>
+            </div>
+            <% } %>
+
+          <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">Product Configuration</h5>
+            </div>
+            <div class="card-body">
+              <% if (!configOptions.length) { %>
+                <p class="text-muted mb-0">There are no configurable options for this product. We'll expose them here once added.</p>
+              <% } %>
+              <% configOptions.forEach(function(option) { %>
+                <div class="mb-4">
+                  <label class="form-label fw-semibold"><%= option.name %></label>
+                  <% if (option.type === 1) { %>
+                    <select class="form-select" name="configoption[<%= option.id %>]">
+                      <% (option.options || []).forEach(function(choice, idx) { %>
+                        <option value="<%= choice.id %>" <%= idx === 0 ? 'selected' : '' %>><%= choice.name || ('Option ' + (idx + 1)) %></option>
+                      <% }) %>
+                    </select>
+                  <% } else if (option.type === 2) { %>
+                    <div class="d-flex flex-column gap-2">
+                      <% (option.options || []).forEach(function(choice, idx) { %>
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="configoption[<%= option.id %>]" value="<%= choice.id %>" <%= idx === 0 ? 'checked' : '' %>>
+                          <label class="form-check-label"><%= choice.name || 'Selection' %></label>
+                        </div>
+                      <% }) %>
+                    </div>
+                  <% } else if (option.type === 3) { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="configoption[<%= option.id %>]" value="1">
+                      <label class="form-check-label">Enable</label>
+                    </div>
+                  <% } else if (option.type === 4) { %>
+                    <input class="form-control" type="number" name="configoption[<%= option.id %>]" min="<%= option.min || 0 %>" max="<%= option.max || '' %>" value="<%= option.min || 0 %>">
+                    <% if (option.options && option.options.length) { %>
+                      <small class="text-muted">Per <%= option.options[0].name %></small>
+                    <% } %>
+                  <% } else { %>
+                    <input class="form-control" type="text" name="configoption[<%= option.id %>]" placeholder="Enter value">
+                  <% } %>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+
+          <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">Additional Information</h5>
+            </div>
+            <div class="card-body">
+              <% if (!customFields.length) { %>
+                <p class="text-muted">Any custom fields defined for this product will appear here.</p>
+              <% } %>
+              <% customFields.forEach(function(field) { %>
+                <div class="mb-4">
+                  <label class="form-label">
+                    <%= field.name %>
+                    <% if (field.required) { %><span class="text-danger">*</span><% } %>
+                  </label>
+                  <% if (field.type === 'textarea') { %>
+                    <textarea class="form-control" rows="3" name="customfield[<%= field.id %>]"></textarea>
+                  <% } else if (field.type === 'dropdown') { %>
+                    <select class="form-select" name="customfield[<%= field.id %>]">
+                      <% (field.options || []).forEach(function(opt) { %>
+                        <option value="<%= opt %>"><%= opt %></option>
+                      <% }) %>
+                    </select>
+                  <% } else if (field.type === 'tickbox') { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="customfield[<%= field.id %>]" value="1">
+                      <label class="form-check-label"><%= field.description || 'Enable' %></label>
+                    </div>
+                  <% } else { %>
+                    <input class="form-control" type="text" name="customfield[<%= field.id %>]">
+                  <% } %>
+                  <% if (field.description) { %>
+                    <small class="text-muted d-block mt-1"><%= field.description %></small>
+                  <% } %>
+                </div>
+              <% }) %>
+              <div class="mb-3">
+                <label class="form-label" for="productNotes">Order Notes</label>
+                <textarea class="form-control" id="productNotes" name="productnotes" rows="3" placeholder="Add any special instructions"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-between align-items-center">
+            <a href="/orderforms/<%= formId %>?step=products<%= productGroup ? `&gid=${productGroup.slug || productGroup.id}` : '' %>" class="btn btn-outline-secondary">
+              &larr; Back to products
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg px-4">
+              Continue to <%= requiresDomain ? 'Domain Selection' : 'Checkout' %>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-white">
+            <h6 class="mb-0">Order Summary</h6>
+          </div>
+          <div class="card-body">
+            <% if (cartItems.length) { %>
+              <ul class="list-group list-group-flush mb-3">
+                <% cartItems.forEach(function(item) { %>
+                  <li class="list-group-item px-0 d-flex justify-content-between align-items-center" id="orderSummaryProductItem">
+                    <div>
+                      <strong class="d-block"><%= item.name %></strong>
+                      <small class="text-muted text-capitalize" id="orderSummaryBillingCycle"><%= item.billingCycle || 'monthly' %></small>
+                    </div>
+                    <span id="orderSummaryProductPrice"><%= item.price?.display || '' %></span>
+                  </li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <p class="text-muted mb-3">Select your configuration to see pricing here.</p>
+            <% } %>
+            <div class="border-top pt-3 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Total Due Today</span>
+              <span class="fw-bold fs-5" id="orderTotalDisplay"><%= cart?.totals?.display || selectedProduct?.priceDisplay || '' %></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm">
+          <div class="card-header bg-white">
+            <h6 class="mb-0">Need assistance?</h6>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-2">Have questions about these options? Our sales team can help you choose the right configuration.</p>
+            <a href="/clientarea/tickets" class="btn btn-outline-primary w-100">Contact Sales</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const billingCycleSelect = document.getElementById('billingCycle');
+  const orderTotalDisplay = document.getElementById('orderTotalDisplay');
+  
+  if (!billingCycleSelect || !orderTotalDisplay) {
+    return; // Exit if elements not found
+  }
+
+  // Get pricing data from select element
+  const pricingDataStr = billingCycleSelect.getAttribute('data-pricing');
+  let pricingData = {};
+  try {
+    pricingData = pricingDataStr ? JSON.parse(pricingDataStr) : {};
+  } catch (e) {
+    console.error('Error parsing pricing data:', e);
+  }
+
+  // Function to update order summary
+  function updateOrderSummary() {
+    const selectedOption = billingCycleSelect.options[billingCycleSelect.selectedIndex];
+    if (!selectedOption) return;
+
+    // Get price from data attribute or pricing data
+    let priceDisplay = selectedOption.getAttribute('data-display');
+    const cycleKey = selectedOption.value;
+    const cycleLabel = selectedOption.getAttribute('data-label') || cycleKey;
+
+    // If data-display not available, try to get from pricingData
+    if (!priceDisplay && pricingData[cycleKey]) {
+      priceDisplay = pricingData[cycleKey].display;
+    }
+
+    // Update the order total display
+    if (priceDisplay) {
+      orderTotalDisplay.textContent = priceDisplay;
+    }
+
+    // Also update the selected plan price if it exists
+    const selectedPlanPrice = document.querySelector('.text-primary.fw-bold');
+    if (selectedPlanPrice) {
+      selectedPlanPrice.textContent = priceDisplay || '';
+    }
+
+    // Update the product line item in order summary
+    const orderSummaryBillingCycle = document.getElementById('orderSummaryBillingCycle');
+    const orderSummaryProductPrice = document.getElementById('orderSummaryProductPrice');
+    
+    if (orderSummaryBillingCycle) {
+      // Map cycle labels to user-friendly format
+      const cycleLabelMap = {
+        'monthly': 'monthly',
+        'quarterly': 'quarterly',
+        'semiannually': 'semi-annually',
+        'annually': 'yearly',
+        'biennially': 'biennially',
+        'triennially': 'triennially'
+      };
+      
+      // Use mapped label or format the cycle key
+      const displayLabel = cycleLabelMap[cycleKey] || cycleKey;
+      orderSummaryBillingCycle.textContent = displayLabel;
+    }
+    
+    if (orderSummaryProductPrice && priceDisplay) {
+      orderSummaryProductPrice.textContent = priceDisplay;
+    }
+  }
+
+  // Update on page load
+  updateOrderSummary();
+
+  // Update when billing cycle changes
+  billingCycleSelect.addEventListener('change', updateOrderSummary);
+})();
+</script>

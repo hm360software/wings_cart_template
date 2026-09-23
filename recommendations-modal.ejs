@@ -1,0 +1,54 @@
+<% if (templatefile === 'configureproductdomain' || templatefile === 'configureproduct') { %>
+<div class="hidden" id="divProductHasRecommendations" data-value="<%= productinfo?.hasRecommendations ? '1' : '0' %>"></div>
+<% } %>
+<div class="modal fade" id="recommendationsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="float-left pull-left">
+                    <% if (templatefile === 'viewcart' || templatefile === 'complete' || templatefile === 'checkout') { %>
+                        <%= lang.recommendations?.title?.generic || 'Recommendations' %>
+                    <% } else { %>
+                        <%= lang.recommendations?.title?.addedTo || 'Added to Cart' %>
+                    <% } %>
+                </h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <div class="clearfix"></div>
+            </div>
+            <div class="modal-body">
+                <%- include('includes/product-recommendations') %>
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-primary" href="#" id="btnContinueRecommendationsModal" data-dismiss="modal" role="button">
+                    <span class="w-hidden hidden"><i class="fas fa-spinner fa-spin"></i>&nbsp;</span><%= lang.continue || 'Continue' %>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="product-recommendation clonable w-hidden hidden">
+        <div class="header">
+            <div class="cta">
+                <div class="price">
+                    <span class="w-hidden hidden"><%= lang.orderfree || 'Free' %></span>
+                    <span class="breakdown-price"></span>
+                    <span class="setup-fee"><small>&nbsp;<%= lang.ordersetupfee || 'Setup Fee' %></small></span>
+                </div>
+                <button type="button" class="btn btn-sm btn-add">
+                    <span class="text"><%= lang.addtocart || 'Add to Cart' %></span>
+                    <span class="arrow"><i class="fas fa-chevron-right"></i></span>
+                </button>
+            </div>
+            <div class="expander">
+                <i class="fas fa-chevron-right rotate" data-toggle="tooltip" data-placement="right" title="<%= lang.recommendations?.learnMore || 'Learn More' %>"></i>
+            </div>
+            <div class="content">
+                <div class="headline truncate"></div>
+                <div class="tagline truncate">
+                    <%= lang.recommendations?.taglinePlaceholder || 'Product tagline' %>
+                </div>
+            </div>
+        </div>
+        <div class="body clearfix"><p></p></div>
+    </div>
+</div>
+

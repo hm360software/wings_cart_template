@@ -1,0 +1,1084 @@
+<% const storefrontPricing=typeof domainPricing !=='undefined' && domainPricing ? domainPricing : {}; const
+  pricingCurrency=domainPricingCurrency || { code: 'USD' , prefix: '$' , suffix: '' }; // Filter Categories const
+  selectedCategory=(typeof filters !=='undefined' && filters.category) ? filters.category : 'all' ; // Table Data const
+  currentTable=(storefrontPricing[selectedCategory] && storefrontPricing[selectedCategory].length) ?
+  storefrontPricing[selectedCategory] : (storefrontPricing['all'] || []); // Showcase Data const
+  heroShowcase=(storefrontPricing.spotlight && storefrontPricing.spotlight.length) ? storefrontPricing.spotlight :
+  (storefrontPricing.featured || []); %>
+
+  <style>
+    .tld-card {
+      border: none;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .tld-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .tld-card-body {
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .tld-card-footer {
+      padding: 0.75rem;
+      text-align: center;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .tld-name {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 0;
+      line-height: 1;
+    }
+
+    .tld-powered {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-top: 0.5rem;
+      letter-spacing: 0.5px;
+    }
+
+    /* Card Variances */
+    .tld-card-blue .tld-name {
+      color: #0284c7;
+    }
+
+    .tld-card-blue .tld-card-footer {
+      background: #38bdf8;
+    }
+
+    .tld-card-yellow .tld-name {
+      color: #ca8a04;
+    }
+
+    .tld-card-yellow .tld-card-footer {
+      background: #eab308;
+    }
+
+    .tld-card-teal .tld-name {
+      color: #0d9488;
+    }
+
+    .tld-card-teal .tld-card-footer {
+      background: #5eead4;
+      color: #134e4a;
+    }
+
+    .tld-card-orange .tld-name {
+      color: #ea580c;
+    }
+
+    .tld-card-orange .tld-card-footer {
+      background: #fb923c;
+    }
+
+    .search-hero-input {
+      border-radius: 999px 0 0 999px !important;
+      border: 1px solid #e2e8f0;
+      padding-left: 1.5rem;
+      font-size: 1.1rem;
+      box-shadow: none !important;
+    }
+
+    .search-hero-btn {
+      border-radius: 0 999px 999px 0 !important;
+      padding-left: 2rem;
+      padding-right: 2rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      background: #2563eb;
+      border-color: #2563eb;
+    }
+
+    .search-hero-btn:hover {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+    }
+  </style>
+
+  <div id="order-standard_cart" class="order-domain py-5 bg-white">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+          <div class="text-center mb-5">
+            <h2 class="fw-bold mb-3">Register Domain</h2>
+            <p class="text-muted fs-5">Find your new domain name. Enter your name or keywords below to check
+              availability.</p>
+          </div>
+
+          <form id="domainRegisterForm" class="mb-5">
+            <input type="hidden" name="_csrf" value="<%= typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '') %>">
+            <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden">
+              <input type="text" class="form-control search-hero-input border-end-0 py-3" name="searchDomainInput"
+                placeholder="Find your new domain name"
+                value="<%= domainSelection?.domain ? (domainSelection.domain + (domainSelection.tld || '')) : '' %>"
+                autofocus>
+              <button type="submit" class="btn btn-primary search-hero-btn text-white">
+                Search
+              </button>
+            </div>
+          </form>
+
+          <div class="row g-4 justify-content-center mb-5" id="spotlightTldCards">
+            <% const colors=['blue', 'yellow' , 'teal' , 'orange' ]; heroShowcase.forEach(function(tld, index){ const
+              colorClass=colors[index % colors.length]; %>
+              <div class="col-6 col-md-3">
+                <div class="tld-card tld-card-<%= colorClass %>" data-tld-extension="<%= tld.extension %>">
+                  <div class="tld-card-body d-flex flex-column align-items-center justify-content-center flex-grow-1">
+                    <div class="tld-name">
+                          <%= tld.extension %>
+                    </div>
+                    <% if(tld.extension==='.com' || tld.extension==='.net' ) { %>
+                      <div class="tld-powered">powered by VERISIGN <i class="fas fa-check-circle text-primary ms-1"
+                          style="font-size: 0.6rem;"></i></div>
+                      <% } %>
+                  </div>
+                  <div class="tld-card-footer" 
+                       data-tld-extension="<%= tld.extension %>"
+                       data-tld-price
+                       <% if (tld.allPricing) { %>data-all-pricing="<%= encodeURIComponent(JSON.stringify(tld.allPricing)) %>"<% } %>>
+                    <%= tld.formattedRegister %>/yr
+                  </div>
+                </div>
+              </div>
+              <% }) %>
+          </div>
+
+          <!-- Spotlight Section for Main Available Domain -->
+          <div id="domainSpotlight" class="border border-success border-2 rounded p-4 mb-4 d-none"
+            style="border-style: dashed !important; background: #f0fdf4;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+              <div>
+                <h5 class="text-success mb-1" id="spotlightDomainText"></h5>
+                <div class="fs-4 fw-bold text-dark" id="spotlightPrice"></div>
+                  </div>
+              <div>
+                <button type="button" class="btn btn-success btn-lg px-4 rounded-pill" id="spotlightAddToCart"
+                  data-add-domain="">
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+            </div>
+
+          <!-- TLD Matrix Section (same SLD across requested TLDs) -->
+          <div id="domainTldMatrix" class="mb-4 d-none">
+            <div class="row g-3" id="domainTldMatrixBody"></div>
+          </div>
+
+          <!-- Alternative TLDs Section -->
+          <div id="domainSearchResults" class="mb-4 d-none">
+            <div class="row g-3" id="domainSearchResultsBody">
+              <!-- Results will be populated here -->
+                </div>
+              </div>
+
+          <div class="domain-tld-table mt-5">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+              <h5 class="mb-0 fw-bold">Domain Pricing</h5>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+              <div class="table-responsive">
+                <table id="domainPricingTable" class="table align-middle mb-0">
+                  <thead class="bg-light">
+                    <tr>
+                      <th class="border-0 ps-4 py-3 text-uppercase text-muted small fw-bold">Domain</th>
+                      <th class="border-0 py-3 text-uppercase text-muted small fw-bold">Register</th>
+                      <th class="border-0 py-3 text-uppercase text-muted small fw-bold">Transfer</th>
+                      <th class="border-0 py-3 text-uppercase text-muted small fw-bold">Renewal</th>
+                    </tr>
+                  </thead>
+                  <tbody id="domainPricingTableBody">
+                    <% if (currentTable.length) { %>
+                      <% currentTable.forEach(function(row){ %>
+                        <tr>
+                          <td class="ps-4">
+                            <strong class="fs-5 text-dark">
+                              <%= row.extension %>
+                            </strong>
+                            <div class="text-muted small">
+                              <%= row.description || 'Top level domain' %>
+                            </div>
+                          </td>
+                          <td class="fw-semibold text-secondary" 
+                              data-tld-extension="<%= row.extension %>"
+                              data-price-type="register"
+                              <% if (row.allPricing) { %>data-all-pricing="<%= encodeURIComponent(JSON.stringify(row.allPricing)) %>"<% } %>>
+                            <%= row.formattedRegister || '—' %>
+                          </td>
+                          <td class="text-muted" 
+                              data-tld-extension="<%= row.extension %>"
+                              data-price-type="transfer"
+                              <% if (row.allPricing) { %>data-all-pricing="<%= encodeURIComponent(JSON.stringify(row.allPricing)) %>"<% } %>>
+                            <%= row.formattedTransfer || '—' %>
+                          </td>
+                          <td class="text-muted" 
+                              data-tld-extension="<%= row.extension %>"
+                              data-price-type="renew"
+                              <% if (row.allPricing) { %>data-all-pricing="<%= encodeURIComponent(JSON.stringify(row.allPricing)) %>"<% } %>>
+                            <%= row.formattedRenew || '—' %>
+                          </td>
+                        </tr>
+                      <% }) %>
+                    <% } else { %>
+                      <tr>
+                        <td colspan="5" class="text-center text-muted py-5">
+                          <div class="fs-1 mb-3">🏷️</div>
+                          <p class="mb-0">Pricing table coming soon.</p>
+                        </td>
+                      </tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="suggestedDomainsSection" class="mt-5 d-none">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+              <h5 class="mb-0 fw-bold">Suggested Domains</h5>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+              <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                  <thead class="bg-light">
+                    <tr>
+                      <th class="border-0 ps-4 py-3 text-uppercase text-muted small fw-bold">Domain</th>
+                      <th class="border-0 py-3 text-uppercase text-muted small fw-bold">Price</th>
+                      <th class="border-0 py-3 text-uppercase text-muted small fw-bold">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="suggestedDomainsTableBody">
+                    <tr>
+                      <td colspan="3" class="text-center text-muted py-4">
+                        Start by searching for a domain to see suggestions.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-4 mt-4">
+              <div class="col-md-6">
+              <div class="card h-100 border-0 shadow-sm rounded-4"
+                style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+                <div class="card-body p-4">
+                  <h5 class="fw-bold mb-2">Add Web Hosting</h5>
+                  <p class="text-muted mb-4 small">Get your website online with high-performance hosting packages.</p>
+                  <a href="/clientarea/services?context=order" class="btn btn-primary rounded-pill px-4 btn-sm">Explore
+                    packages</a>
+                </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+              <div class="card h-100 border-0 shadow-sm rounded-4"
+                style="background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);">
+                <div class="card-body p-4">
+                  <h5 class="fw-bold mb-2">Transfer your domain</h5>
+                  <p class="text-muted mb-4 small">Move your domain to HM360 to manage everything from a single place.
+                  </p>
+                  <a href="/orderforms/<%= formId %>?step=domain&mode=transfer"
+                    class="btn btn-dark rounded-pill px-4 btn-sm">Transfer domain</a>
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form id="domainSelectionForm" action="/orderforms/<%= formId %>/domain" method="post" class="d-none">
+  <input type="hidden" name="_csrf" value="<%= typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '') %>">
+  <input type="hidden" name="domainOption" value="register">
+  <input type="hidden" name="domainSld">
+  <input type="hidden" name="domainTld">
+  <input type="hidden" name="domainYears" value="1">
+    <!-- pid and gid are intentionally omitted for domain-only orders -->
+    <!-- They will only be added via JavaScript if explicitly needed for product+domain orders -->
+</form>
+
+<script>
+  (function () {
+    const form = document.getElementById('domainRegisterForm');
+    const resultsCard = document.getElementById('domainSearchResults');
+    const resultsBody = document.getElementById('domainSearchResultsBody');
+    const tldMatrixCard = document.getElementById('domainTldMatrix');
+    const tldMatrixBody = document.getElementById('domainTldMatrixBody');
+    const suggestedTableBody = document.getElementById('suggestedDomainsTableBody');
+    const selectionForm = document.getElementById('domainSelectionForm');
+    const allTlds = <%- JSON.stringify((domainTlds || []).map((tld) => tld.extension)) %>;
+    const searchEndpoint = '/orderforms/<%= formId %>/domain/search';
+      const pricingCurrency = <%- JSON.stringify(pricingCurrency || { code: "USD", prefix: "$", suffix: "" }) %>;
+    const csrfToken = <%- JSON.stringify(typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '')) %>;
+
+    function formatDisplayPrice(value) {
+      if (value === null || typeof value === 'undefined' || value === '') {
+        return '—';
+      }
+      const prefix = pricingCurrency.prefix || '';
+      const suffix = pricingCurrency.suffix || (pricingCurrency.code ? ' ' + pricingCurrency.code : '');
+      return `${prefix}${Number(value).toFixed(2)}${suffix}`;
+    }
+
+    function buildTldRequestList(selected) {
+      const normalized = [];
+      const pushTld = (value) => {
+        const clean = String(value || '').replace(/^\./, '').toLowerCase();
+        if (clean && !normalized.includes(clean) && normalized.length < 10) {
+          normalized.push(clean);
+        }
+      };
+      pushTld(selected);
+      getSpotlightTldSet().forEach(pushTld);
+      allTlds.forEach(pushTld);
+      return normalized;
+    }
+
+    function getSpotlightTldSet() {
+      const nodes = document.querySelectorAll('#spotlightTldCards [data-tld-extension]');
+      const set = new Set();
+      nodes.forEach((el) => {
+        const ext = (el.getAttribute('data-tld-extension') || '').toLowerCase();
+        if (!ext) return;
+        const clean = ext.startsWith('.') ? ext.slice(1) : ext;
+        set.add(clean);
+      });
+      return set;
+    }
+
+    function parseDomainInput(input) {
+        if (!input) return { sld: '', tld: '' };
+        const trimmed = input.trim();
+        const lastDotIndex = trimmed.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+          const possibleTld = trimmed.substring(lastDotIndex);
+          return {
+            sld: trimmed.substring(0, lastDotIndex),
+            tld: possibleTld
+          };
+        }
+        return { sld: trimmed, tld: '.com' };
+    }
+
+    function updatePricingTableFromResults(rows) {
+      if (!suggestedTableBody || !Array.isArray(rows)) {
+        return;
+      }
+
+      const spotlightSet = getSpotlightTldSet();
+
+      const suggestions = rows.filter((row) => {
+        if (!row || !row.domain) {
+          return false;
+        }
+        const status = String(row.status || '').toLowerCase();
+        if (!(row.available && status === 'available')) {
+          return false;
+        }
+        const domain = String(row.domain || '').toLowerCase();
+        const parts = domain.split('.');
+        const tldPart = parts.length > 1 ? parts[parts.length - 1] : '';
+        return !spotlightSet.has(tldPart);
+      });
+
+      if (!suggestions.length) {
+        suggestedTableBody.innerHTML = `
+          <tr>
+            <td colspan="3" class="text-center text-muted py-4">
+              No suggested domains found for this search.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const tableRows = suggestions
+        .map((row) => {
+          const price = row.pricing?.register ?? row.registrarCost?.register;
+          const priceDisplay = formatDisplayPrice(price);
+          const safePrice = price !== null && typeof price !== 'undefined' && !isNaN(Number(price))
+            ? Number(price)
+            : 0;
+          return `
+            <tr>
+              <td class="ps-4">
+                <strong class="fs-5 text-dark">${row.domain}</strong>
+              </td>
+              <td class="fw-semibold text-secondary" data-domain-price data-original-price="${safePrice}">
+                ${priceDisplay}
+              </td>
+              <td>
+                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" data-add-domain="${row.domain}">
+                  Add to Cart
+                </button>
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+
+      suggestedTableBody.innerHTML = tableRows;
+    }
+
+    function showResults(rows, term) {
+        const heroCards = document.getElementById('spotlightTldCards');
+        const spotlightEl = document.getElementById('domainSpotlight');
+        const spotlightDomainText = document.getElementById('spotlightDomainText');
+        const spotlightPrice = document.getElementById('spotlightPrice');
+        const spotlightAddToCart = document.getElementById('spotlightAddToCart');
+        const pricingContainer = document.querySelector('.domain-tld-table');
+        const suggestedContainer = document.getElementById('suggestedDomainsSection');
+
+        if (!resultsCard || !spotlightEl) return;
+
+        spotlightEl.classList.add('d-none');
+        resultsCard.classList.add('d-none');
+        tldMatrixCard && tldMatrixCard.classList.add('d-none');
+        tldMatrixBody && (tldMatrixBody.innerHTML = '');
+        // Hide initial hero cards when showing dynamic search results
+        heroCards && heroCards.classList.add('d-none');
+
+        if (pricingContainer) {
+          pricingContainer.classList.add('d-none');
+        }
+        if (suggestedContainer) {
+          suggestedContainer.classList.remove('d-none');
+        }
+
+        if (!rows.length) {
+      resultsCard.classList.remove('d-none');
+          resultsBody.innerHTML = `<div class="col-12"><div class="text-center text-muted py-4">No matches found for <strong>${term}</strong>. Try another extension.</div></div>`;
+        return;
+      }
+
+        const exactMatch = rows.find((r) => r.domain.toLowerCase() === term.toLowerCase() && r.available && r.status === 'available');
+        const firstAvailable = exactMatch || rows.find((r) => r.available && r.status === 'available');
+
+        if (firstAvailable) {
+          const price = firstAvailable.pricing?.register ?? firstAvailable.registrarCost?.register;
+          const priceDisplay = formatDisplayPrice(price);
+
+          spotlightDomainText.innerHTML = `<span class="fw-bold text-dark">${firstAvailable.domain}</span> is available!`;
+          spotlightPrice.textContent = priceDisplay;
+          spotlightPrice.setAttribute('data-original-price', price || '0');
+          spotlightAddToCart.setAttribute('data-add-domain', firstAvailable.domain);
+          spotlightAddToCart.disabled = false;
+          spotlightAddToCart.classList.remove('disabled');
+
+          spotlightEl.classList.remove('d-none');
+        }
+
+        // Build Matrix for same SLD across returned TLDs, limited to spotlight TLDs
+        try {
+          const sldOnly = term.toLowerCase().split('.').shift();
+          const sameSldItems = rows.filter((r) => {
+            const parts = (r.domain || '').toLowerCase().split('.');
+            parts.pop();
+            const sld = parts.join('.');
+            return sld === sldOnly;
+          });
+
+          const spotlightSet = getSpotlightTldSet();
+          const spotlightMatches = sameSldItems.filter((r) => {
+            const domain = String(r.domain || '').toLowerCase();
+            const parts = domain.split('.');
+            const tldPart = parts.length > 1 ? parts[parts.length - 1] : '';
+            return spotlightSet.has(tldPart);
+          });
+
+          if (spotlightMatches.length > 0 && tldMatrixCard && tldMatrixBody) {
+            tldMatrixCard.classList.remove('d-none');
+            tldMatrixBody.innerHTML = spotlightMatches.map((row) => {
+              const isAvailable = !!row.available && String(row.status || '').toLowerCase() === 'available';
+              const price = row.pricing?.register ?? row.registrarCost?.register;
+              const priceDisplay = formatDisplayPrice(price);
+              const tldBadge = (row.tld || '').replace(/^\./, '');
+              const domain = (row.domain || '').toLowerCase();
+              return `
+                <div class="col-md-3 col-sm-4 col-6">
+                  <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="card-body p-3">
+                      <div class="${isAvailable ? 'text-success' : 'text-muted'} small fw-bold mb-1">
+                        ${isAvailable ? '<i class="fas fa-check-circle"></i> Available' : 'Unavailable'}
+                      </div>
+                      <div class="fw-bold mb-1">${tldBadge.toUpperCase()}</div>
+                      <div class="text-muted small">${domain}</div>
+                      <div class="fs-6 fw-bold ${isAvailable ? 'text-primary' : 'text-secondary'} mb-2">${isAvailable ? priceDisplay : '—'}</div>
+                      ${isAvailable
+                        ? `<button type="button" class="btn btn-outline-primary btn-sm w-100 rounded-pill" data-add-domain="${domain}">
+                             Add
+                           </button>`
+                        : `<button type="button" class="btn btn-outline-secondary btn-sm w-100 rounded-pill" disabled>
+                             Unavailable
+                           </button>`
+                      }
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          } else if (tldMatrixCard && tldMatrixBody) {
+            tldMatrixCard.classList.add('d-none');
+            tldMatrixBody.innerHTML = '';
+          }
+        } catch (matrixErr) {
+          // TLD matrix is optional UI; fail silently in production
+        }
+
+        const alternativeDomains = firstAvailable
+          ? rows.filter((r) => r.domain !== firstAvailable.domain && r.available && r.status === 'available')
+          : rows.filter((r) => r.available && r.status === 'available');
+
+        if (alternativeDomains.length > 0) {
+          resultsCard.classList.remove('d-none');
+          resultsBody.innerHTML = alternativeDomains
+        .map((row) => {
+          const price = row.pricing?.register ?? row.registrarCost?.register;
+              const priceDisplay = formatDisplayPrice(price);
+          return `
+              <div class="col-md-4 col-lg-3 col-sm-6">
+                <div class="card h-100 border-0 shadow-sm text-center card-hover-effect">
+                  <div class="card-body p-3">
+                    <div class="text-success small fw-bold mb-1"><i class="fas fa-check-circle"></i> Available</div>
+                    <div class="fw-bold mb-2 fs-5 text-dark">${row.domain}</div>
+                    <div class="fs-5 fw-bold text-primary mb-3" data-domain-price data-original-price="${price || '0'}">${priceDisplay}</div>
+                    <button type="button" class="btn btn-outline-primary btn-sm w-100 rounded-pill" data-add-domain="${row.domain}">
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+          `;
+        })
+        .join('');
+        } else if (!firstAvailable) {
+          resultsCard.classList.remove('d-none');
+          resultsBody.innerHTML = `<div class="col-12"><div class="text-center text-muted py-4">No available domains found for <strong>${term}</strong>.</div></div>`;
+        }
+
+        // Replace domain pricing table with TLD prices from search results
+        updatePricingTableFromResults(rows);
+    }
+
+    if (form) {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+          // Use the new name "searchDomainInput" and improved selector strategy
+          let inputEl = form.querySelector('input[name="searchDomainInput"]');
+          if (!inputEl) {
+            inputEl = form.querySelector('.search-hero-input');
+          }
+          if (!inputEl) {
+            // Fallback to finding any text input in the form
+            inputEl = form.querySelector('input[type="text"]');
+          }
+
+          const rawInput = inputEl ? inputEl.value : '';
+
+          if (!rawInput || !rawInput.trim()) {
+          alert('Enter a domain name to search.');
+          return;
+        }
+
+          const { sld, tld } = parseDomainInput(rawInput);
+
+          if (!sld) {
+            alert('Invalid domain name.');
+            return;
+          }
+
+          const spotlightEl = document.getElementById('domainSpotlight');
+        if (resultsCard) {
+          resultsCard.classList.remove('d-none');
+            resultsBody.innerHTML = '<div class="col-12"><div class="text-center py-5"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div><p class="mt-2 text-muted">Searching availability...</p></div></div>';
+          }
+          if (spotlightEl) {
+            spotlightEl.classList.add('d-none');
+          }
+
+          try {
+            const bodyPayload = {
+              searchTerm: sld,
+              domainTld: tld,
+              tlds: buildTldRequestList(tld)
+            };
+
+            const headers = {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            };
+            if (csrfToken) {
+              headers['X-CSRF-Token'] = csrfToken;
+            }
+
+            const response = await fetch(searchEndpoint, {
+              method: 'POST',
+              headers,
+              credentials: 'same-origin',
+              body: JSON.stringify(bodyPayload)
+          });
+          const raw = await response.text();
+          let payload;
+          try {
+            payload = JSON.parse(raw);
+          } catch (parseErr) {
+            throw new Error('Domain search could not be completed. Please refresh the page and try again.');
+          }
+
+          if (!response.ok || !payload.success) {
+            throw new Error(payload.message || payload.error || 'Unable to check domain.');
+          }
+          const items = payload.data?.items || [];
+            const fullTerm = tld ? `${sld}${tld}` : `${sld}.com`;
+            showResults(items, fullTerm);
+        } catch (error) {
+          if (resultsCard) {
+              resultsCard.classList.remove('d-none');
+              resultsBody.innerHTML = `<div class="col-12"><div class="text-center text-danger py-4">${error.message || 'Lookup failed.'}</div></div>`;
+            }
+            const spotlightEl = document.getElementById('domainSpotlight');
+            if (spotlightEl) {
+              spotlightEl.classList.add('d-none');
+          }
+        }
+      });
+    }
+
+    document.addEventListener('click', (event) => {
+      const addBtn = event.target.closest('[data-add-domain]');
+      if (!addBtn || !selectionForm) {
+        return;
+      }
+      if (addBtn.disabled || addBtn.classList.contains('disabled')) {
+        return;
+      }
+      const domain = addBtn.getAttribute('data-add-domain') || '';
+      if (!domain.includes('.')) {
+        return;
+      }
+      const parts = domain.toLowerCase().split('.');
+      const last = parts.pop();
+      const sld = parts.join('.');
+      const tld = '.' + last;
+
+      selectionForm.querySelector('input[name="domainSld"]').value = sld;
+      selectionForm.querySelector('input[name="domainTld"]').value = tld;
+
+      const pidInput = selectionForm.querySelector('input[name="pid"]');
+      const gidInput = selectionForm.querySelector('input[name="gid"]');
+      if (pidInput) pidInput.remove();
+      if (gidInput) gidInput.remove();
+
+      selectionForm.submit();
+    });
+
+  })();
+
+    // Currency Conversion System
+    (function() {
+      const CURRENCY_STORAGE_KEY = 'hm360_currencies';
+      const CURRENCY_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+      const formId = '<%= typeof formId !== "undefined" ? formId : "wings_cart" %>';
+      const currentCurrency = <%- JSON.stringify(pricingCurrency) %>;
+      const csrfToken = (typeof window.csrfToken === 'string' && window.csrfToken)
+        ? window.csrfToken
+        : <%- JSON.stringify(typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '')) %>;
+      
+      // Get currencies from localStorage or fetch from API
+      async function getCurrencies() {
+        let previousCached = [];
+        try {
+          const cached = localStorage.getItem(CURRENCY_STORAGE_KEY);
+          if (cached) previousCached = JSON.parse(cached).data || [];
+        } catch (e) {
+          localStorage.removeItem(CURRENCY_STORAGE_KEY);
+        }
+
+        try {
+          const apiUrl = `/orderforms/${formId}/currencies`;
+          const response = await fetch(apiUrl);
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            localStorage.setItem(CURRENCY_STORAGE_KEY, JSON.stringify({
+              data: result.data,
+              timestamp: Date.now()
+            }));
+            return result.data;
+          }
+
+          return previousCached;
+        } catch (error) {
+          return previousCached;
+        }
+      }
+
+      // Get default currency (currency with default = true)
+      function getDefaultCurrency(currencies) {
+        return currencies.find(c => c.default) || currencies[0];
+      }
+
+      // Convert price from one currency to another
+      function convertPrice(price, fromCurrency, toCurrency) {
+        if (!price || !fromCurrency || !toCurrency) {
+          return price;
+        }
+        const fromRate = parseFloat(fromCurrency.rate) || 1;
+        const toRate = parseFloat(toCurrency.rate) || 1;
+        // Convert: price * (toRate / fromRate)
+        return price * (toRate / fromRate);
+      }
+
+      // Format price with currency
+      function formatPrice(price, currency) {
+        if (price === null || price === undefined || price === '') return '—';
+        const prefix = currency.prefix || '';
+        const suffix = currency.suffix || (currency.code ? ' ' + currency.code : '');
+        const formatted = `${prefix}${Number(price).toFixed(2)}${suffix}`;
+        return formatted;
+      }
+
+      // Update all TLD prices in the table - using pre-calculated prices from API
+      async function updateTldPrices(newCurrency) {
+        const currencyId = String(newCurrency.id);
+        
+        // Update pricing table - use allPricing data from API
+        const tableRows = document.querySelectorAll('#domainPricingTable tbody tr');
+        
+        tableRows.forEach((row) => {
+          const registerCell = row.querySelector('td[data-price-type="register"]');
+          const transferCell = row.querySelector('td[data-price-type="transfer"]');
+          const renewCell = row.querySelector('td[data-price-type="renew"]');
+          
+          // Get allPricing from data attribute
+          const allPricingAttr = registerCell?.getAttribute('data-all-pricing') || 
+                                 transferCell?.getAttribute('data-all-pricing') || 
+                                 renewCell?.getAttribute('data-all-pricing');
+          
+          if (allPricingAttr) {
+            try {
+              // Decode URL-encoded JSON string
+              const decodedJson = decodeURIComponent(allPricingAttr);
+              const allPricing = JSON.parse(decodedJson);
+              const currencyPricing = allPricing[currencyId];
+              
+              if (currencyPricing) {
+                // Update register price
+                if (registerCell && currencyPricing.formattedRegister) {
+                  registerCell.textContent = currencyPricing.formattedRegister;
+                }
+                
+                // Update transfer price
+                if (transferCell && currencyPricing.formattedTransfer) {
+                  transferCell.textContent = currencyPricing.formattedTransfer;
+                }
+                
+                // Update renew price
+                if (renewCell && currencyPricing.formattedRenew) {
+                  renewCell.textContent = currencyPricing.formattedRenew;
+                }
+              }
+            } catch (e) {
+              // Silently handle parsing errors
+            }
+          }
+        });
+
+        // Update spotlight TLD cards
+        const spotlightCards = document.querySelectorAll('#spotlightTldCards [data-tld-price]');
+        
+        spotlightCards.forEach((card) => {
+          const allPricingAttr = card.getAttribute('data-all-pricing');
+          if (allPricingAttr) {
+            try {
+              const allPricing = JSON.parse(decodeURIComponent(allPricingAttr));
+              const currencyPricing = allPricing[currencyId];
+              
+              if (currencyPricing && currencyPricing.formattedRegister) {
+                card.textContent = currencyPricing.formattedRegister + '/yr';
+              }
+            } catch (e) {
+              // Silently handle parsing errors
+            }
+          }
+        });
+
+        // Update spotlight/hero prices (from search results) - still use conversion for these
+        const spotlightPrice = document.getElementById('spotlightPrice');
+        if (spotlightPrice) {
+          const originalPrice = parseFloat(spotlightPrice.getAttribute('data-original-price') || '0');
+          if (!isNaN(originalPrice) && originalPrice > 0) {
+            const currencies = await getCurrencies();
+            const defaultCurrency = getDefaultCurrency(currencies);
+            const convertedPrice = convertPrice(originalPrice, defaultCurrency, newCurrency);
+            spotlightPrice.textContent = formatPrice(convertedPrice, newCurrency);
+          }
+        }
+
+        // Update search result prices - still use conversion for these
+        const resultPrices = document.querySelectorAll('[data-domain-price]');
+        if (resultPrices.length > 0) {
+          const currencies = await getCurrencies();
+          const defaultCurrency = getDefaultCurrency(currencies);
+          resultPrices.forEach(priceEl => {
+            const originalPrice = parseFloat(priceEl.getAttribute('data-original-price') || '0');
+            if (!isNaN(originalPrice) && originalPrice > 0) {
+              const convertedPrice = convertPrice(originalPrice, defaultCurrency, newCurrency);
+              priceEl.textContent = formatPrice(convertedPrice, newCurrency);
+            }
+          });
+        }
+      }
+
+      // Store original prices in data attributes on page load (if not already set)
+      // This function ensures data attributes exist, but won't override server-provided values
+      function storeOriginalPrices() {
+        const tableRows = document.querySelectorAll('#domainPricingTable tbody tr');
+        tableRows.forEach(row => {
+          const registerCell = row.querySelector('td:nth-child(2)');
+          const transferCell = row.querySelector('td:nth-child(3)');
+          const renewCell = row.querySelector('td:nth-child(4)');
+          
+          [registerCell, transferCell, renewCell].forEach(cell => {
+            // Only set if not already set (server should provide these)
+            if (cell && !cell.getAttribute('data-original-price')) {
+              const priceText = cell.textContent.replace(/[^\d.]/g, '');
+              const price = parseFloat(priceText);
+              if (!isNaN(price) && price > 0) {
+                // Note: This price might be in current currency, not default
+                // But it's better than nothing if server didn't provide it
+                cell.setAttribute('data-original-price', price.toString());
+              }
+            }
+          });
+        });
+      }
+
+      // Initialize currency switcher
+      async function initCurrencySwitcher(switcherElement) {
+        // If switcher not provided, try to find it
+        const switcher = switcherElement || findCurrencySwitcher();
+        if (!switcher) {
+          return;
+        }
+        
+        // Mark as initialized to prevent duplicate initialization
+        if (switcher.hasAttribute('data-initialized')) {
+          return;
+        }
+        switcher.setAttribute('data-initialized', 'true');
+        
+        const switcherId = switcher.id;
+        const isLoggedInUser = switcherId === 'hm360CatalogCurrency';
+        const isDisabled = switcher.disabled;
+        
+        // For logged-in users, currency is managed in profile - don't allow changes
+        if (isLoggedInUser && isDisabled) {
+          return;
+        }
+
+        // Get currencies and current currency
+        const currencies = await getCurrencies();
+        const defaultCurrency = getDefaultCurrency(currencies);
+        
+        // Get current currency from page context
+        const currentCurrencyRate = parseFloat(currentCurrency.rate) || 1;
+        const defaultCurrencyRate = parseFloat(defaultCurrency.rate) || 1;
+        
+        // Store original prices in default currency
+        // Prices from server are in CURRENT currency, so we need to convert them to default currency
+        const tableRows = document.querySelectorAll('#domainPricingTable tbody tr');
+        tableRows.forEach((row) => {
+          const registerCell = row.querySelector('td:nth-child(2)');
+          const transferCell = row.querySelector('td:nth-child(3)');
+          const renewCell = row.querySelector('td:nth-child(4)');
+          
+          [registerCell, transferCell, renewCell].forEach(cell => {
+            if (cell) {
+              // Get price from data attribute (server-provided, in current currency)
+              let price = parseFloat(cell.getAttribute('data-original-price') || '0');
+              
+              // If not in data attribute, parse from displayed text
+              if (!price || price === 0) {
+                const priceText = cell.textContent.replace(/[^\d.]/g, '');
+                price = parseFloat(priceText);
+              }
+              
+              // Convert from current currency to default currency and store
+              if (!isNaN(price) && price > 0) {
+                const priceInDefaultCurrency = price * (defaultCurrencyRate / currentCurrencyRate);
+                cell.setAttribute('data-original-price', priceInDefaultCurrency.toString());
+              }
+            }
+          });
+        });
+        
+        // Store original prices for spotlight TLD cards (convert to default currency)
+        const spotlightCards = document.querySelectorAll('#spotlightTldCards [data-tld-price]');
+        spotlightCards.forEach((card) => {
+          // Get price from data attribute (server-provided, in current currency)
+          let price = parseFloat(card.getAttribute('data-original-price') || '0');
+          
+          // If not in data attribute, parse from displayed text
+          if (!price || price === 0) {
+            const priceText = card.textContent.replace(/\/yr/g, '').replace(/[^\d.]/g, '');
+            price = parseFloat(priceText);
+          }
+          
+          // Convert from current currency to default currency and store
+          if (!isNaN(price) && price > 0) {
+            const priceInDefaultCurrency = price * (defaultCurrencyRate / currentCurrencyRate);
+            card.setAttribute('data-original-price', priceInDefaultCurrency.toString());
+          }
+        });
+
+        switcher.addEventListener('change', async function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (!selectedOption || !selectedOption.value) {
+          return;
+        }
+
+        // Check if this is the logged-in user switcher (hm360CatalogCurrency)
+        const isLoggedInUser = this.id === 'hm360CatalogCurrency';
+        
+        let newCurrency;
+        if (isLoggedInUser) {
+          // For logged-in users, value is currency code, need to find currency data
+          const currencyCode = selectedOption.value;
+          
+          // Get currency data from the currencies list
+          const currencies = await getCurrencies();
+          const currencyData = currencies.find(c => c.code === currencyCode);
+          
+          if (!currencyData) {
+            return;
+          }
+          
+          newCurrency = {
+            id: currencyData.id,
+            code: currencyData.code,
+            prefix: currencyData.prefix || '',
+            suffix: currencyData.suffix || '',
+            rate: parseFloat(currencyData.rate) || 1
+          };
+        } else {
+          // For non-logged-in users, data attributes are available
+          newCurrency = {
+            id: selectedOption.value,
+            code: selectedOption.getAttribute('data-code'),
+            prefix: selectedOption.getAttribute('data-prefix') || '',
+            suffix: selectedOption.getAttribute('data-suffix') || '',
+            rate: parseFloat(selectedOption.getAttribute('data-rate')) || 1
+          };
+        }
+
+          // Update prices
+          await updateTldPrices(newCurrency);
+
+          // Save currency preference
+          try {
+            const currencyHeaders = { 'Content-Type': 'application/json' };
+            if (csrfToken) {
+              currencyHeaders['X-CSRF-Token'] = csrfToken;
+            }
+            const response = await fetch('/clientarea/set-currency', {
+              method: 'POST',
+              headers: currencyHeaders,
+              credentials: 'same-origin',
+              body: JSON.stringify({ currency: newCurrency.id })
+            });
+            
+            // Also store in cookie for order forms
+            document.cookie = `hm360_currency=${JSON.stringify(newCurrency)}; path=/; max-age=${30 * 24 * 60 * 60}`;
+          } catch (error) {
+            // Silently handle error
+          }
+        });
+      }
+
+      // Find currency switcher - can be either currencySwitcher (non-logged-in) or hm360CatalogCurrency (logged-in)
+      function findCurrencySwitcher() {
+        // Try non-logged-in user switcher first
+        let switcher = document.getElementById('currencySwitcher');
+        if (switcher) {
+          return switcher;
+        }
+        
+        // Try logged-in user switcher
+        switcher = document.getElementById('hm360CatalogCurrency');
+        if (switcher) {
+          return switcher;
+        }
+        
+        return null;
+      }
+
+      // Initialize on page load - wait for sidebar to be rendered
+      let retryCount = 0;
+      const MAX_RETRIES = 50; // 5 seconds max (50 * 100ms)
+      
+      function waitForSwitcherAndInit() {
+        retryCount++;
+        const switcher = findCurrencySwitcher();
+        if (switcher) {
+          initCurrencySwitcher(switcher);
+        } else if (retryCount < MAX_RETRIES) {
+          setTimeout(waitForSwitcherAndInit, 100);
+        }
+      }
+
+      // Start waiting for switcher
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          waitForSwitcherAndInit();
+        });
+      } else {
+        waitForSwitcherAndInit();
+      }
+      
+      // Also try after a longer delay in case sidebar loads asynchronously
+      setTimeout(() => {
+        const switcher = findCurrencySwitcher();
+        if (switcher && !switcher.hasAttribute('data-initialized')) {
+          initCurrencySwitcher(switcher);
+        }
+      }, 2000);
+
+      // Debug function to check currency system state
+      window.debugCurrency = async function() {
+        // Debug function available but logs removed for production
+      };
+
+      // Expose functions globally for use in other scripts
+      window.currencyConverter = {
+        getCurrencies,
+        convertPrice,
+        formatPrice,
+        updateTldPrices,
+        debug: window.debugCurrency
+      };
+  })();
+</script>

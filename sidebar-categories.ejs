@@ -1,0 +1,82 @@
+<% if (secondarySidebar && secondarySidebar.length > 0) { %>
+    <% secondarySidebar.forEach(panel => { %>
+        <div menuItemName="<%= panel.name || '' %>" 
+             class="panel card card-sidebar mb-3 <%= panel.class || 'panel-sidebar' %><% if (panel.mobileSelect && panel.children && panel.children.length > 0) { %> hidden-sm hidden-xs d-none d-md-block<% } %>"
+             <% if (panel.id) { %>id="<%= panel.id %>"<% } %>>
+            <div class="panel-heading card-header">
+                <h3 class="panel-title">
+                    <% if (panel.icon) { %>
+                        <i class="<%= panel.icon %>"></i>&nbsp;
+                    <% } %>
+
+                    <%= panel.label || '' %>
+
+                    <% if (panel.badge) { %>
+                        &nbsp;<span class="badge"><%= panel.badge %></span>
+                    <% } %>
+
+                    <i class="fas fa-chevron-up card-minimise panel-minimise pull-right float-right"></i>
+                </h3>
+            </div>
+
+            <% if (panel.bodyHtml) { %>
+                <div class="panel-body card-body collapsable-card-body">
+                    <%- panel.bodyHtml %>
+                </div>
+            <% } %>
+
+            <% if (panel.children && panel.children.length > 0) { %>
+                <div class="list-group collapsable-card-body<%= panel.childrenClass ? ' ' + panel.childrenClass : '' %>">
+                    <% panel.children.forEach(child => { %>
+                        <% if (child.uri) { %>
+                            <a menuItemName="<%= child.name || '' %>" 
+                               href="<%= child.uri %>" 
+                               class="list-group-item list-group-item-action<%= child.disabled ? ' disabled' : '' %><%= child.class ? ' ' + child.class : '' %><%= child.current ? ' active' : '' %>"
+                               <% if (child.dataToggleTab) { %>data-toggle="tab"<% } %>
+                               <% if (child.target) { %>target="<%= child.target %>"<% } %>
+                               <% if (child.id) { %>id="<%= child.id %>"<% } %>>
+                                <% if (child.icon) { %>
+                                    <i class="<%= child.icon %>"></i>&nbsp;
+                                <% } %>
+
+                                <%= child.label || '' %>
+
+                                <% if (child.badge) { %>
+                                    &nbsp;<span class="badge"><%= child.badge %></span>
+                                <% } %>
+                            </a>
+                        <% } else { %>
+                            <div menuItemName="<%= child.name || '' %>" 
+                                 class="list-group-item<%= child.class ? ' ' + child.class : '' %>"
+                                 <% if (child.id) { %>id="<%= child.id %>"<% } %>>
+                                <% if (child.icon) { %>
+                                    <i class="<%= child.icon %>"></i>&nbsp;
+                                <% } %>
+
+                                <%= child.label || '' %>
+
+                                <% if (child.badge) { %>
+                                    &nbsp;<span class="badge"><%= child.badge %></span>
+                                <% } %>
+                            </div>
+                        <% } %>
+                    <% }); %>
+                </div>
+            <% } %>
+
+            <% if (panel.footerHtml) { %>
+                <div class="panel-footer card-footer clearfix">
+                    <%- panel.footerHtml %>
+                </div>
+            <% } %>
+        </div>
+
+        <% if (panel.mobileSelect && panel.children && panel.children.length > 0) { %>
+            <div class="panel card hidden-lg hidden-md d-md-none<%= panel.class ? ' ' + panel.class : ' panel-default' %>"
+                 <% if (panel.id) { %>id="<%= panel.id %>"<% } %>>
+                <%- include('sidebar-categories-selector') %>
+            </div>
+        <% } %>
+    <% }); %>
+<% } %>
+

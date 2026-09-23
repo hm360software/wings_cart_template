@@ -1,0 +1,713 @@
+<style>
+  /* See custom.css for layout styles */
+</style>
+
+<div id="order-standard_cart">
+  <div class="row">
+    <!-- Sidebar is handled by layout when sidebarVariant is set -->
+    <div class="cart-body">
+      <div class="header-lined">
+        <h2 class="font-size-22">
+          <% if (productGroup && productGroup.headline) { %>
+            <%= productGroup.headline %>
+              <% } else if (productGroup) { %>
+                <%= productGroup.name %>
+                  <% } %>
+        </h2>
+        <% if (productGroup && productGroup.tagline) { %>
+          <p>
+            <%= productGroup.tagline %>
+          </p>
+          <% } %>
+      </div>
+      <% const errorMessage=typeof errormessage !=='undefined' ? errormessage : null; const groupFeatureInclude=typeof
+        group_product_feature_link !=='undefined' ? group_product_feature_link : null; if (typeof
+        lastProduct==='undefined' ) { var lastProduct=null; } if (typeof productRecommendations==='undefined' ) { var
+        productRecommendations=null; } if (typeof recommendStyle==='undefined' ) { var recommendStyle=null; } if (typeof
+        templatefile==='undefined' ) { var templatefile='products' ; } // Get the active currency from context const
+        activeCurrency=typeof currency !=='undefined' && currency ? currency : null; console.log('🔵 [PRODUCTS-EJS] Active currency:', activeCurrency); %>
+        <% if (errorMessage) { %>
+          <div class="alert alert-danger">
+            <%= errorMessage %>
+          </div>
+          <% } else if (!productGroup) { %>
+            <div class="alert alert-info">
+              <%= lang.orderForm?.selectCategory || 'Please select a category' %>
+            </div>
+            <% } %>
+
+              <div class="products" id="products">
+                <div class="row row-eq-height">
+                  <% if (products && products.length> 0) { %>
+                    <% products.forEach((product, index)=> { %>
+                      <% const idPrefix=product.bid ? 'bundle' + product.bid : 'product' + product.pid; %>
+                        <div class="col-md-6 col-lg-4">
+                          <div class="tt-single-product text-center px-3 py-5 my-3 tt-custom-radius clearfix"
+                            id="<%= idPrefix %>">
+                            <% if (product.isFeatured) { %>
+                              <div class="tt-featured-badge">
+                                <span class="badge">
+                                  <%= (lang.featuredProduct || 'Featured Product' ).toUpperCase() %>
+                                </span>
+                              </div>
+                              <% } %>
+                                <div class="tt-product-name">
+                                  <h5 id="<%= idPrefix %>-name">
+                                    <%= product.name %>
+                                  </h5>
+                                  <% if (product.tagline) { %>
+                                    <p class="text-muted small mb-0"><%= product.tagline %></p>
+                                  <% } %>
+                                </div>
+                                <div class="product-pricing tt-product-price mt-3" id="<%= idPrefix %>-price">
+                                  <span class="tt-cycle d-block text-muted">
+                                    <% if (product.bid) { %>
+                                      <%= lang.bundledeal || 'Bundle Deal' %><br />
+                                        <% if (product.displayprice) { %>
+                                          <span class="price"
+                                            data-original-price="<%= product.priceValue || (product.displayprice ? product.displayprice.replace(/[^\d.]/g, '') : '0') %>"
+                                            data-product-price="true">
+                                            <%= product.displayprice %>
+                                          </span>
+                                          <% } %>
+                                            <% } else { %>
+                                              <% if (product.pricing && product.pricing.hasconfigoptions) { %>
+                                                <%= lang.startingfrom || 'Starting from' %>
+                                                  <br />
+                                                  <% } %>
+                                  </span>
+                                  <% // Use the active currency from context or fall back to product currency const
+                                    displayCurrency=activeCurrency || product.currency; const
+                                    priceValue=product.priceValue || 0; const prefix=displayCurrency ?
+                                    displayCurrency.prefix || '' : '' ; const suffix=displayCurrency ?
+                                    displayCurrency.suffix || (displayCurrency.code ? ' ' + displayCurrency.code : '' )
+                                    : '' ; const priceDisplay=prefix + Number(priceValue).toFixed(2) + suffix; %>
+                                    <span class="price" data-original-price="<%= parseFloat(product.priceValue) || 0 %>"
+                                      data-product-price="true"
+                                      data-currency-id="<%= displayCurrency ? displayCurrency.id : '' %>"
+                                      data-currency-code="<%= displayCurrency ? displayCurrency.code : '' %>"
+                                      data-currency-prefix="<%= displayCurrency ? displayCurrency.prefix : '' %>"
+                                      data-currency-suffix="<%= displayCurrency ? displayCurrency.suffix : '' %>" <% if
+                                      (product.allPricing && Object.keys(product.allPricing).length> 0) {
+                                      %>data-all-pricing="<%= encodeURIComponent(JSON.stringify(product.allPricing)) %>"
+                                        <% } %>><%= priceDisplay %></span>
+                                    <br />
+                                    <span class="text-muted mb-0 tt-cycle">
+                                      <% if (product.paytype==='free' ) { %>
+                                        <%= lang.freeText || 'Free' %>
+                                          <% } else if (product.paytype==='onetime' ) { %>
+                                            <%= lang.oneTimeText || 'One Time' %>
+                                              <% } else { %>
+                                                <% const cycle=product.pricing?.minprice?.cycle; const
+                                                  cycleMap={ 'monthly' : lang.orderpaymenttermmonthly || 'Monthly'
+                                                  , 'quarterly' : lang.orderpaymenttermquarterly || 'Quarterly'
+                                                  , 'semiannually' : lang.orderpaymenttermsemiannually
+                                                  || 'Semi-Annually' , 'annually' : lang.orderpaymenttermannually
+                                                  || 'Annually' , 'biennially' : lang.orderpaymenttermbiennially
+                                                  || 'Biennially' , 'triennially' : lang.orderpaymenttermtriennially
+                                                  || 'Triennially' }; %>
+                                                  <%= cycleMap[cycle] || cycle %>
+                                                    <% } %>
+                                    </span>
+                                    <br>
+                                    <% if (product.pricing?.minprice?.setupFee) { %>
+                                      <small class="text-muted d-inline-block bg-primary-light px-2 rounded mt-2">
+                                        <strong class="product-setup-fee"
+                                          data-original-price="<%= product.pricing.minprice.setupFee ? product.pricing.minprice.setupFee.replace(/[^\d.]/g, '') : '0' %>"
+                                          data-product-price="true">
+                                          <%= product.pricing.minprice.setupFee %>
+                                        </strong>
+                                        <%= lang.ordersetupfee || 'Setup Fee' %>
+                                      </small>
+                                      <% } %>
+                                        <% } %>
+                                </div>
+                                <% if (product.requiresDomain) { %>
+                                  <div class="mt-2">
+                                    <span class="badge bg-light text-dark text-uppercase small">Domain Required</span>
+                                  </div>
+                                  <% } %>
+                                    <div>
+                                      <% if (product.stockControlEnabled) { %>
+                                        <span class="qty text-muted small">
+                                          <% if (product.outOfStock) { %>
+                                            Out of stock
+                                          <% } else { %>
+                                            <%= product.qty %>
+                                            <%= lang.orderavailable || 'Available' %>
+                                          <% } %>
+                                        </span>
+                                        <% } %>
+                                    </div>
+                                    <div class="product-desc py-3 tt-product-desc">
+                                      <% if (product.featuresdesc) { %>
+                                        <% 
+                                          // Only show featuresdesc if it exists - this is the admin's formatted description
+                                          // Don't show features array if featuresdesc exists to avoid duplication
+                                        %>
+                                        <div id="<%= idPrefix %>-description">
+                                          <%- product.featuresdesc %>
+                                        </div>
+                                        <% } else if (product.features && product.features.length> 0) { %>
+                                          <% 
+                                            // Only show features array if featuresdesc doesn't exist
+                                            // Display feature properly - avoid duplication of value and name
+                                          %>
+                                          <ul class="mb-0">
+                                            <% product.features.forEach((feature, idx)=> { %>
+                                              <li id="<%= idPrefix %>-feature<%= idx + 1 %>">
+                                                <% 
+                                                  // Handle different feature formats and prevent duplication
+                                                  let displayText = '';
+                                                  if (typeof feature === 'string') {
+                                                    // Simple string feature
+                                                    displayText = feature;
+                                                  } else if (feature && typeof feature === 'object') {
+                                                    // Object feature - check for duplication
+                                                    const value = String(feature.value || '').trim();
+                                                    const name = String(feature.name || '').trim();
+                                                    
+                                                    if (value && name) {
+                                                      // Both exist - check if they're the same
+                                                      if (value === name) {
+                                                        // Same value, show only once
+                                                        displayText = value;
+                                                      } else {
+                                                        // Different values - combine them meaningfully
+                                                        // Only combine if they're actually different content
+                                                        displayText = value + ' ' + name;
+                                                      }
+                                                    } else {
+                                                      // Only one exists
+                                                      displayText = value || name || '';
+                                                    }
+                                                  } else {
+                                                    // Fallback
+                                                    displayText = String(feature || '');
+                                                  }
+                                                %>
+                                                <%= displayText %>
+                                              </li>
+                                              <% }); %>
+                                          </ul>
+                                        <% } %>
+                                    </div>
+                                    <% const rawGroupSlug=(product.groupSlug || (product.productGroup &&
+                                      product.productGroup.slug) || product.groupId || '' ).toString().toLowerCase();
+                                      const normalizedFormId=typeof formId !=='undefined' && formId ? formId
+                                      : 'wings_cart' ; const productLink='/orderforms/' + normalizedFormId
+                                      + '?step=configure&pid=' + (product.pid || product.id) + (rawGroupSlug ? '&gid=' +
+                                      rawGroupSlug : '' ); %>
+                                      <% if (product.outOfStock) { %>
+                                        <button type="button" class="btn btn-secondary btn-order-now" disabled>
+                                          Out of Stock
+                                        </button>
+                                      <% } else { %>
+                                      <a href="<%= productLink %>" class="btn btn-primary btn-order-now"
+                                        id="<%= idPrefix %>-order-button" <% if (product.hasRecommendations) {
+                                        %>data-has-recommendations="1"<% } %>>
+                                          <%= lang.ordernowbutton || 'Order Now' %>
+                                      </a>
+                                      <% } %>
+                          </div>
+                        </div>
+                        <% if ((index + 1) % 3===0) { %>
+                </div>
+                <div class="row row-eq-height">
+                  <% } %>
+                    <% }); %>
+                      <% } %>
+                </div>
+              </div>
+
+              <% if (productGroup && productGroup.features && productGroup.features.length> 0) { %>
+                <div class="row clearfix">
+                  <div class="col-md-12">
+                    <div class="tt-group-featured-wrap tt-custom-radius mt-4">
+                      <h6 class="tt-group-head">
+                        <%= lang.orderForm?.includedWithPlans || 'Included with Plans' %>
+                      </h6>
+                      <ul class="tt-group-features-list list-unstyled mb-0">
+                        <% productGroup.features.forEach(feature=> { %>
+                          <li><i class="fad fa-check"></i>
+                            <%= feature.feature || feature %>
+                          </li>
+                          <% }); %>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <% } %>
+
+                  <% if (groupFeatureInclude) { %>
+                    <%- include(groupFeatureInclude) %>
+                      <% } %>
+
+    </div>
+  </div>
+</div>
+
+<%- include('recommendations-modal') %>
+
+  <script>
+    // Currency Conversion System for Products Page
+    (function () {
+      console.log('🔵 [CURRENCY-PRODUCTS] Initializing currency conversion for products page...');
+      const CURRENCY_STORAGE_KEY = 'hm360_currencies';
+      const CURRENCY_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+      const formId = '<%= typeof formId !== "undefined" ? formId : "wings_cart" %>';
+      const csrfToken = (typeof window.csrfToken === 'string' && window.csrfToken)
+        ? window.csrfToken
+        : <%- JSON.stringify(typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '')) %>;
+    // Get currency from server context - this should be the active currency from application context
+    <% if (typeof currency !== 'undefined' && currency) { %>
+    const currentCurrency = <%- JSON.stringify(currency) %>;
+    <% } else { %>
+    const currentCurrency = null;
+    <% } %>
+
+        // Get currencies from localStorage or fetch from API
+        async function getCurrencies() {
+          console.log('🔵 [CURRENCY-PRODUCTS] getCurrencies() called');
+          let previousCached = [];
+          try {
+            const cached = localStorage.getItem(CURRENCY_STORAGE_KEY);
+            if (cached) previousCached = JSON.parse(cached).data || [];
+          } catch (e) {
+            localStorage.removeItem(CURRENCY_STORAGE_KEY);
+          }
+
+          try {
+            const apiUrl = `/orderforms/${formId}/currencies`;
+            console.log('🔵 [CURRENCY-PRODUCTS] Fetching from:', apiUrl);
+            const response = await fetch(apiUrl);
+            const result = await response.json();
+            console.log('🔵 [CURRENCY-PRODUCTS] API response:', result);
+
+            if (result.success && result.data) {
+              console.log('🔵 [CURRENCY-PRODUCTS] Received', result.data.length, 'currencies from API');
+              localStorage.setItem(CURRENCY_STORAGE_KEY, JSON.stringify({
+                data: result.data,
+                timestamp: Date.now()
+              }));
+              return result.data;
+            }
+
+            console.warn('🔵 [CURRENCY-PRODUCTS] API response not successful or no data');
+            return previousCached;
+          } catch (error) {
+            console.error('🔴 [CURRENCY-PRODUCTS] Error fetching currencies:', error);
+            return previousCached;
+          }
+        }
+
+      // Get default currency from database
+      function getDefaultCurrency(currencies) {
+        if (!currencies || currencies.length === 0) {
+          console.error('🔴 [CURRENCY-PRODUCTS] No currencies available');
+          return null;
+        }
+        const defaultCurr = currencies.find(c => c.default === true || c.default === 1 || c.default === '1') || currencies[0];
+        console.log('🔵 [CURRENCY-PRODUCTS] Default currency:', defaultCurr);
+        return defaultCurr;
+      }
+
+      // Convert price from one currency to another
+      function convertPrice(price, fromCurrency, toCurrency) {
+        if (!price || !fromCurrency || !toCurrency) {
+          console.warn('🔴 [CURRENCY-PRODUCTS] convertPrice: Invalid parameters', { price, fromCurrency, toCurrency });
+          return price;
+        }
+        const fromRate = parseFloat(fromCurrency.rate) || 1;
+        const toRate = parseFloat(toCurrency.rate) || 1;
+        const converted = price * (toRate / fromRate);
+        // Only log first conversion as example
+        if (!convertPrice._logged) {
+          console.log(`🔵 [CURRENCY-PRODUCTS] convertPrice example: ${price} ${fromCurrency.code} (rate: ${fromRate}) -> ${converted.toFixed(2)} ${toCurrency.code} (rate: ${toRate})`);
+          convertPrice._logged = true;
+        }
+        return converted;
+      }
+
+      // Format price with currency
+      function formatPrice(price, currency) {
+        if (price === null || price === undefined || price === '') return '—';
+        const prefix = currency.prefix || '';
+        const suffix = currency.suffix || (currency.code ? ' ' + currency.code : '');
+        return `${prefix}${Number(price).toFixed(2)}${suffix}`;
+      }
+
+      // Update all product prices - using pre-calculated prices from API
+      async function updateProductPrices(newCurrency) {
+        console.log('🟢 [CURRENCY-PRODUCTS] ========== updateProductPrices() CALLED ==========');
+        console.log('🟢 [CURRENCY-PRODUCTS] New currency:', newCurrency);
+        console.log('🟢 [CURRENCY-PRODUCTS] Using pre-calculated prices from API (no conversion needed)');
+
+        const currencyId = String(newCurrency.id);
+
+        // Update product prices - use allPricing data from API
+        const productPrices = document.querySelectorAll('[data-product-price="true"]');
+        console.log('🟢 [CURRENCY-PRODUCTS] Found', productPrices.length, 'product prices to update');
+
+        if (productPrices.length === 0) {
+          console.error('🔴 [CURRENCY-PRODUCTS] No product prices found! Check if [data-product-price="true"] exists in HTML');
+          return;
+        }
+
+        let updatedCount = 0;
+
+        productPrices.forEach((priceEl, index) => {
+          const allPricingAttr = priceEl.getAttribute('data-all-pricing');
+
+          if (allPricingAttr) {
+            try {
+              const allPricing = JSON.parse(decodeURIComponent(allPricingAttr));
+              const currencyPricing = allPricing[currencyId];
+
+              if (currencyPricing && currencyPricing.monthly !== undefined) {
+                const formatted = formatPrice(currencyPricing.monthly, newCurrency);
+                priceEl.textContent = formatted;
+                updatedCount++;
+                if (index < 3) {
+                  console.log(`🟢 [CURRENCY-PRODUCTS] Price ${index}: Using pre-calculated price ${currencyPricing.monthly} ${newCurrency.code} -> "${formatted}"`);
+                }
+              } else {
+                console.warn(`🔴 [CURRENCY-PRODUCTS] Price ${index}: No pricing found for currency ${currencyId}`);
+              }
+            } catch (e) {
+              console.error(`🔴 [CURRENCY-PRODUCTS] Price ${index}: Error parsing allPricing:`, e);
+              // Note: Fallback conversion would require async, skip for now
+            }
+          } else {
+            // Fallback: use conversion if allPricing not available
+            console.warn(`🔴 [CURRENCY-PRODUCTS] Price ${index}: No allPricing data, using conversion fallback`);
+
+            // Get original price from data attribute
+            const originalPrice = parseFloat(priceEl.getAttribute('data-original-price') || '0');
+            if (originalPrice > 0) {
+              // Convert to new currency
+              const convertedPrice = convertPrice(originalPrice, currentCurrency, newCurrency);
+              const formatted = formatPrice(convertedPrice, newCurrency);
+              priceEl.textContent = formatted;
+              updatedCount++;
+              if (index < 3) {
+                console.log(`🟢 [CURRENCY-PRODUCTS] Price ${index}: Converted ${originalPrice} ${currentCurrency.code} -> ${convertedPrice.toFixed(2)} ${newCurrency.code} -> "${formatted}"`);
+              }
+            }
+          }
+        });
+
+        console.log('🟢 [CURRENCY-PRODUCTS] Updated', updatedCount, 'product prices');
+      }
+
+      // Expose update function globally IMMEDIATELY so sidebar can call it
+      if (typeof window.currencyConverter === 'undefined') {
+        window.currencyConverter = {};
+      }
+      window.currencyConverter.updateProductPrices = updateProductPrices;
+      window.currencyConverter.updateAllPrices = updateProductPrices; // Alias for compatibility
+      console.log('✅ [CURRENCY-PRODUCTS] Exposed updateProductPrices globally at', new Date().toISOString());
+
+      // Find currency switcher - try multiple selectors
+      function findCurrencySwitcher() {
+        // Try different possible IDs and selectors
+        const possibleIds = [
+          'currencySwitcher',
+          'hm360CatalogCurrency',
+          'headerCurrencyLangDropdown',
+          'catalogCurrency'
+        ];
+        
+        for (const id of possibleIds) {
+          const switcher = document.getElementById(id);
+          if (switcher) {
+            console.log(`✅ [CURRENCY-PRODUCTS] Found currency switcher: ${id}`);
+            return switcher;
+          }
+        }
+        
+        // Try to find by class or data attribute
+        const switcherByClass = document.querySelector('[data-currency-switcher="true"]') || 
+                                document.querySelector('.currency-switcher') ||
+                                document.querySelector('select[name="currency"]');
+        
+        if (switcherByClass) {
+          console.log('✅ [CURRENCY-PRODUCTS] Found currency switcher by class/attribute');
+          return switcherByClass;
+        }
+        
+        return null;
+      }
+
+      // Initialize currency switcher
+      async function initCurrencySwitcher(switcherElement) {
+        console.log('🟡 [CURRENCY-PRODUCTS] initCurrencySwitcher() called');
+        const switcher = switcherElement || findCurrencySwitcher();
+        if (!switcher) {
+          console.error('🔴 [CURRENCY-PRODUCTS] Currency switcher element NOT FOUND!');
+          return;
+        }
+
+        if (switcher.hasAttribute('data-initialized')) {
+          console.log('🟡 [CURRENCY-PRODUCTS] Switcher already initialized, skipping...');
+          return;
+        }
+        switcher.setAttribute('data-initialized', 'true');
+
+        const switcherId = switcher.id;
+        const isLoggedInUser = switcherId === 'hm360CatalogCurrency';
+        const isDisabled = switcher.disabled;
+        console.log('🟡 [CURRENCY-PRODUCTS] Currency switcher found:', switcherId);
+        console.log('🟡 [CURRENCY-PRODUCTS] User type:', isLoggedInUser ? 'LOGGED IN' : 'NOT LOGGED IN');
+        console.log('🟡 [CURRENCY-PRODUCTS] Switcher disabled:', isDisabled);
+
+        // For logged-in users, currency is managed in profile - don't allow changes
+        if (isLoggedInUser && isDisabled) {
+          console.log('🟡 [CURRENCY-PRODUCTS] Logged-in user detected - currency dropdown is disabled (managed in profile)');
+          return;
+        }
+
+        // Store original prices in default currency
+        const currencies = await getCurrencies();
+        const defaultCurrency = getDefaultCurrency(currencies);
+
+        // If no current currency, use default currency
+        let activeCurrency = currentCurrency;
+        if (!activeCurrency && defaultCurrency) {
+          activeCurrency = defaultCurrency;
+        }
+
+        if (!activeCurrency || !defaultCurrency) {
+          console.error('🔴 [CURRENCY-PRODUCTS] Missing currency data');
+          return;
+        }
+
+        const currentCurrencyRate = parseFloat(activeCurrency.rate) || 1;
+        const defaultCurrencyRate = parseFloat(defaultCurrency.rate) || 1;
+
+        console.log('🟡 [CURRENCY-PRODUCTS] Current currency rate:', currentCurrencyRate);
+        console.log('🟡 [CURRENCY-PRODUCTS] Default currency rate:', defaultCurrencyRate);
+
+        // Store original prices for product prices
+        // Prices from server are in CURRENT currency, so we need to convert them to default currency
+        const productPrices = document.querySelectorAll('[data-product-price="true"]');
+        console.log('🟡 [CURRENCY-PRODUCTS] Found', productPrices.length, 'product prices to store');
+        let storedCount = 0;
+
+        productPrices.forEach((priceEl, index) => {
+          // Get price from data attribute (server-provided, in current currency)
+          let price = parseFloat(priceEl.getAttribute('data-original-price') || '0');
+
+          // If not in data attribute, parse from displayed text
+          if (!price || price === 0) {
+            const priceText = priceEl.textContent.replace(/[^\d.]/g, '');
+            price = parseFloat(priceText);
+          }
+
+          // Convert from current currency to default currency and store
+          if (!isNaN(price) && price > 0) {
+            const priceInDefaultCurrency = price * (defaultCurrencyRate / currentCurrencyRate);
+            priceEl.setAttribute('data-original-price', priceInDefaultCurrency.toString());
+            storedCount++;
+            if (index < 3) { // Only log first 3 as examples
+              console.log(`🟡 [CURRENCY-PRODUCTS] Price ${index} stored: ${price} (current ${activeCurrency.code}) -> ${priceInDefaultCurrency} (default ${defaultCurrency.code})`);
+            }
+          } else if (index === 0) {
+            console.warn(`🔴 [CURRENCY-PRODUCTS] Price ${index}: Could not parse price from "${priceEl.textContent}"`);
+          }
+        });
+
+        console.log('🟡 [CURRENCY-PRODUCTS] Stored', storedCount, 'product prices in default currency');
+
+        // Add change event listener (only if sidebar hasn't already added one)
+        // The sidebar will call window.currencyConverter.updateAllPrices, so we don't need to duplicate
+        // But we add a listener here as a fallback in case sidebar code isn't loaded
+        console.log('🟡 [CURRENCY-PRODUCTS] Checking if event listener already exists...');
+        if (!switcher.hasAttribute('data-products-listener-added')) {
+          console.log('🟡 [CURRENCY-PRODUCTS] Adding change event listener to switcher');
+          switcher.setAttribute('data-products-listener-added', 'true');
+          switcher.addEventListener('change', async function () {
+            console.log('🟢 [CURRENCY-PRODUCTS] ========== CURRENCY SWITCHER CHANGED ==========');
+            const selectedOption = this.options[this.selectedIndex];
+            if (!selectedOption || !selectedOption.value) {
+              console.warn('🔴 [CURRENCY-PRODUCTS] No currency selected or invalid option');
+              return;
+            }
+
+            const isLoggedInUser = this.id === 'hm360CatalogCurrency';
+            let newCurrency;
+
+            if (isLoggedInUser) {
+              const currencyCode = selectedOption.value;
+              const currencies = await getCurrencies();
+              const currencyData = currencies.find(c => c.code === currencyCode);
+              if (!currencyData) {
+                console.error('🔴 [CURRENCY-PRODUCTS] Currency data not found for code:', currencyCode);
+                return;
+              }
+              newCurrency = {
+                id: currencyData.id,
+                code: currencyData.code,
+                prefix: currencyData.prefix || '',
+                suffix: currencyData.suffix || '',
+                rate: parseFloat(currencyData.rate) || 1
+              };
+            } else {
+              newCurrency = {
+                id: selectedOption.value,
+                code: selectedOption.getAttribute('data-code'),
+                prefix: selectedOption.getAttribute('data-prefix') || '',
+                suffix: selectedOption.getAttribute('data-suffix') || '',
+                rate: parseFloat(selectedOption.getAttribute('data-rate')) || 1
+              };
+            }
+
+            console.log('🟢 [CURRENCY-PRODUCTS] New currency:', newCurrency);
+            await updateProductPrices(newCurrency);
+
+            // Save currency preference
+            try {
+              const currencyHeaders = { 'Content-Type': 'application/json' };
+              if (csrfToken) {
+                currencyHeaders['X-CSRF-Token'] = csrfToken;
+              }
+              const response = await fetch('/clientarea/set-currency', {
+                method: 'POST',
+                headers: currencyHeaders,
+                credentials: 'same-origin',
+                body: JSON.stringify({ currency: newCurrency.id })
+              });
+              document.cookie = `hm360_currency=${JSON.stringify(newCurrency)}; path=/; max-age=${30 * 24 * 60 * 60}`;
+            } catch (error) {
+              console.error('Error saving currency preference:', error);
+            }
+          });
+        } else {
+          console.log('🟡 [CURRENCY-PRODUCTS] Event listener already added, skipping...');
+        }
+      }
+
+      // Wait for switcher and initialize (optional - script works without it)
+      let retryCount = 0;
+      const MAX_RETRIES = 30; // Reduced retries
+      let switcherFound = false;
+
+      function waitForSwitcherAndInit() {
+        retryCount++;
+        const switcher = findCurrencySwitcher();
+        if (switcher) {
+          switcherFound = true;
+          console.log(`✅ [CURRENCY-PRODUCTS] Switcher found after ${retryCount} attempts, initializing...`);
+          initCurrencySwitcher(switcher);
+        } else if (retryCount < MAX_RETRIES) {
+          if (retryCount % 10 === 0) {
+            console.log(`⏳ [CURRENCY-PRODUCTS] Switcher not found yet (attempt ${retryCount}/${MAX_RETRIES})...`);
+          }
+          setTimeout(waitForSwitcherAndInit, 100);
+        } else {
+          // Switcher not found - this is OK, script can still work for price updates
+          console.log('ℹ️ [CURRENCY-PRODUCTS] Currency switcher not found on this page. Price updates will still work via URL params/localStorage.');
+          console.log('ℹ️ [CURRENCY-PRODUCTS] If you need currency switching, ensure the switcher element exists in the header/sidebar.');
+        }
+      }
+
+      // Check for currency from application context (localStorage/cookie) and update prices on page load
+      async function checkCurrencyAndUpdate() {
+        // Get currency from multiple sources: URL param, localStorage, cookie
+        let currencyId = null;
+        let currencyObj = null;
+
+        // 1. Check URL parameter (first time navigation)
+        const urlParams = new URLSearchParams(window.location.search);
+        const currencyParam = urlParams.get('currency');
+        if (currencyParam) {
+          currencyId = parseInt(currencyParam);
+        }
+
+        // 2. Check localStorage (application context - persists across pages)
+        if (!currencyId) {
+          const stored = localStorage.getItem('hm360_selected_currency');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              currencyId = parsed.id;
+              currencyObj = parsed;
+            } catch (e) {
+              localStorage.removeItem('hm360_selected_currency');
+            }
+          }
+        }
+
+        // 3. Check cookie (fallback)
+        if (!currencyId) {
+          const cookies = document.cookie.split(';');
+          for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'hm360_currency') {
+              try {
+                const parsed = JSON.parse(decodeURIComponent(value));
+                currencyId = parsed.id;
+                currencyObj = parsed;
+              } catch (e) {
+                // ignore invalid cookie
+              }
+              break;
+            }
+          }
+        }
+
+        // If we found a currency, update prices
+        if (currencyId) {
+          // Get full currency data from API if we don't have it
+          if (!currencyObj) {
+            const currencies = await getCurrencies();
+            const selectedCurrency = currencies.find(c => c.id === currencyId);
+            if (selectedCurrency) {
+              currencyObj = selectedCurrency;
+            }
+          }
+
+          if (currencyObj) {
+            const newCurrency = {
+              id: currencyObj.id || currencyId,
+              code: currencyObj.code,
+              prefix: currencyObj.prefix || '',
+              suffix: currencyObj.suffix || '',
+              rate: parseFloat(currencyObj.rate) || 1
+            };
+
+            // Update product prices immediately
+            await updateProductPrices(newCurrency);
+          }
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', async () => {
+          console.log('🟡 [CURRENCY-PRODUCTS] DOM loaded, waiting for switcher...');
+          waitForSwitcherAndInit();
+          // Check application context currency and update prices
+          await checkCurrencyAndUpdate();
+        });
+      } else {
+        console.log('🟡 [CURRENCY-PRODUCTS] DOM already loaded, waiting for switcher...');
+        waitForSwitcherAndInit();
+        // Check application context currency and update prices
+        checkCurrencyAndUpdate();
+      }
+
+      // Delayed check for switcher (in case it loads dynamically)
+      setTimeout(() => {
+        if (!switcherFound) {
+          const switcher = findCurrencySwitcher();
+          if (switcher && !switcher.hasAttribute('data-initialized')) {
+            switcherFound = true;
+            console.log('✅ [CURRENCY-PRODUCTS] Switcher found on delayed check (2s), initializing...');
+            initCurrencySwitcher(switcher);
+          }
+        }
+      }, 2000);
+
+      console.log('✅ [CURRENCY-PRODUCTS] Currency conversion system initialized for products page');
+    })();
+  </script>

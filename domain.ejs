@@ -1,0 +1,362 @@
+<%
+  const flashErrors = Array.isArray(error_msg) ? error_msg : (error_msg ? [error_msg] : []);
+  const selectedMode = (domainSelection && domainSelection.mode) || 'register';
+  const tldOptions = (domainTlds && domainTlds.length)
+    ? domainTlds
+    : [{ id: 1, extension: '.com', label: '.COM' }];
+  const domainParts = domainSelection && domainSelection.domain
+    ? domainSelection.domain.split('.')
+    : [];
+  const extractedSld = domainParts.length ? domainParts.shift() : '';
+  const inferredTld = domainSelection && domainSelection.tld
+    ? domainSelection.tld
+    : (domainParts.length ? `.${domainParts.join('.')}` : (tldOptions[0]?.extension || '.com'));
+  const registerSld = selectedMode !== 'existing' ? extractedSld : '';
+  const existingDomainValue = selectedMode === 'existing' ? (domainSelection && domainSelection.domain) : '';
+%>
+
+<div id="order-standard_cart" class="order-domain py-4">
+  <div class="container-fluid">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-uppercase text-muted small mb-0">Products & Services</p>
+              <h5 class="mb-0">Choose a Domain</h5>
+            </div>
+            <% if (selectedProduct) { %>
+              <span class="badge bg-primary-subtle text-primary">
+                <%= selectedProduct.name %>
+              </span>
+            <% } %>
+          </div>
+          <div class="card-body">
+            <% if (flashErrors.length) { %>
+              <div class="alert alert-danger">
+                <% flashErrors.forEach(function(msg) { %>
+                  <div><%= msg %></div>
+                <% }); %>
+              </div>
+            <% } %>
+
+            <% if (selectedProduct) { %>
+              <div class="mb-4 border rounded p-3">
+                <div class="text-uppercase text-muted small mb-1">Selected Product</div>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <div class="fw-semibold"><%= selectedProduct.name %></div>
+                    <div class="text-muted small"><%= selectedProduct.tagline || 'Hosting plan' %></div>
+                  </div>
+                  <div class="text-primary fw-bold fs-5">
+                    <%= selectedProduct.priceDisplay || selectedProduct.pricing?.minprice?.price || '' %>
+                  </div>
+                </div>
+              </div>
+            <% } %>
+
+            <form method="post" action="/orderforms/<%= formId %>/domain" id="hm360DomainForm">
+              <input type="hidden" name="_csrf" value="<%= typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '') %>">
+              <input type="hidden" name="pid" value="<%= selectedProduct ? selectedProduct.pid : '' %>">
+              <input type="hidden" name="gid" value="<%= selectedProduct ? (selectedProduct.groupSlug || selectedProduct.groupId || '') : '' %>">
+              <input type="hidden" name="domainYears" value="<%= (domainSelection && domainSelection.years) || 1 %>">
+
+              <div class="mb-4">
+                <label class="form-check form-switch">
+                  <input class="form-check-input" type="radio" name="domainOption" value="register" <%= selectedMode === 'register' ? 'checked' : '' %>>
+                  <span class="form-check-label fw-semibold">Register a new domain</span>
+                </label>
+                <div class="mt-3" data-domain-panel="register">
+                  <div class="input-group domain-check-group">
+                    <input type="text" class="form-control" name="domainFull" placeholder="example.com" value="<%= selectedMode === 'register' && domainSelection && domainSelection.domain ? domainSelection.domain : '' %>">
+                    <button class="btn btn-outline-primary" type="button" data-domain-check>
+                      Check
+                    </button>
+                  </div>
+                  <small class="text-muted d-block mt-2">
+                    Enter the domain you would like to use and click Check to see availability.
+                  </small>
+                  <div id="domainCheckStatus" class="mt-2 small"></div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-check form-switch">
+                  <input class="form-check-input" type="radio" name="domainOption" value="transfer" <%= selectedMode === 'transfer' ? 'checked' : '' %>>
+                  <span class="form-check-label fw-semibold">Transfer your domain from another registrar</span>
+                </label>
+                <div class="mt-3" data-domain-panel="transfer">
+                  <div class="input-group">
+                    <input type="text" class="form-control" name="transferFull" placeholder="existingdomain.com" value="<%= selectedMode === 'transfer' && domainSelection && domainSelection.domain ? domainSelection.domain : '' %>">
+                  </div>
+                  <small class="text-muted d-block mt-2">
+                    After checkout we'll prompt for the EPP/Auth code to complete the transfer.
+                  </small>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-check form-switch">
+                  <input class="form-check-input" type="radio" name="domainOption" value="existing" <%= selectedMode === 'existing' ? 'checked' : '' %>>
+                  <span class="form-check-label fw-semibold">I will use my existing domain and update my nameservers</span>
+                </label>
+                <div class="mt-3" data-domain-panel="existing">
+                  <div class="input-group">
+                    <input type="text" class="form-control" name="existingDomain" placeholder="example.com" value="<%= existingDomainValue %>">
+                  </div>
+                  <small class="text-muted d-block mt-2">
+                    Enter the domain you already own. We'll provide the correct nameservers after checkout.
+                  </small>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="text-muted small">
+                  Need help deciding? <a href="/clientarea/tickets">Open a sales ticket</a>.
+                </div>
+                <div>
+                  <button type="submit" class="btn btn-primary">
+                    Continue to Review
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card shadow-sm">
+          <div class="card-header bg-white">
+            <h6 class="mb-0">Order Summary</h6>
+          </div>
+          <div class="card-body">
+            <% if (cart && cart.items && cart.items.length) { %>
+              <ul class="list-group list-group-flush mb-3">
+                <% cart.items.forEach(function(item) { %>
+                  <li class="list-group-item px-0 d-flex justify-content-between">
+                    <div>
+                      <strong class="d-block"><%= item.name %></strong>
+                      <small class="text-muted text-capitalize"><%= item.billingCycle || 'monthly' %></small>
+                    </div>
+                    <span><%= item.price.display %></span>
+                  </li>
+                <% }); %>
+              </ul>
+            <% } else { %>
+              <p class="text-muted mb-3">Your selected product will appear here.</p>
+            <% } %>
+
+            <div class="border-top pt-3 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Total Due Today</span>
+              <span class="fw-bold fs-5"><%= cart?.totals?.display || selectedProduct?.priceDisplay || '' %></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mt-4">
+          <div class="card-header bg-white">
+            <h6 class="mb-0">Need Help?</h6>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-2">Questions about domains? Our sales team is ready to help.</p>
+            <a href="/clientarea/tickets" class="btn btn-outline-primary w-100">Contact Sales</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const optionRadios = document.querySelectorAll('#hm360DomainForm input[name="domainOption"]');
+  const panels = document.querySelectorAll('[data-domain-panel]');
+  const form = document.getElementById('hm360DomainForm');
+  const searchEndpoint = '/orderforms/<%= formId %>/domain/search';
+  const allTlds = <%- JSON.stringify((domainTlds || []).map(function(tld) { return tld.extension; })) %>;
+  const csrfToken = <%- JSON.stringify(typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '')) %>;
+
+  function refreshPanels() {
+    const value = document.querySelector('#hm360DomainForm input[name="domainOption"]:checked').value;
+    panels.forEach(function(panel) {
+      panel.style.display = panel.getAttribute('data-domain-panel') === value ? 'block' : 'none';
+    });
+  }
+
+  optionRadios.forEach(function(radio) {
+    radio.addEventListener('change', refreshPanels);
+  });
+
+  function ensureStatusContainer() {
+    var status = document.getElementById('domainCheckStatus');
+    if (status) {
+      return status;
+    }
+    var registerPanel = document.querySelector('[data-domain-panel="register"]');
+    if (!registerPanel) {
+      return null;
+    }
+    status = document.createElement('div');
+    status.id = 'domainCheckStatus';
+    status.className = 'mt-2 small';
+    registerPanel.appendChild(status);
+    return status;
+  }
+
+  function parseDomainInput(input) {
+    if (!input) {
+      return { sld: '', tld: '' };
+    }
+    var trimmed = input.trim();
+    var lastDotIndex = trimmed.lastIndexOf('.');
+    if (lastDotIndex > 0) {
+      var possibleTld = trimmed.substring(lastDotIndex);
+      return {
+        sld: trimmed.substring(0, lastDotIndex),
+        tld: possibleTld
+      };
+    }
+    return { sld: trimmed, tld: '.com' };
+  }
+
+  function buildTldRequestList(selected) {
+    var normalized = [];
+    if (selected) {
+      normalized.push(selected.replace(/^\./, '').toLowerCase());
+    }
+    allTlds.forEach(function(item) {
+      var clean = (item || '').replace(/^\./, '').toLowerCase();
+      if (clean && normalized.indexOf(clean) === -1 && normalized.length < 10) {
+        normalized.push(clean);
+      }
+    });
+    return normalized;
+  }
+
+  async function handleDomainCheck(btn) {
+    if (!form) {
+      return;
+    }
+    var input = form.querySelector('input[name="domainFull"]');
+    if (!input) {
+      return;
+    }
+    var raw = input.value || '';
+    if (!raw.trim()) {
+      alert('Enter a domain name to search.');
+      return;
+    }
+
+    var parsed = parseDomainInput(raw);
+    if (!parsed.sld) {
+      alert('Invalid domain name.');
+      return;
+    }
+
+    var status = ensureStatusContainer();
+    if (!status) {
+      return;
+    }
+
+    var fullTerm = parsed.tld ? parsed.sld + parsed.tld : parsed.sld + '.com';
+    status.innerHTML = '<span class="text-muted">Checking availability for <strong>' + fullTerm + '</strong>...</span>';
+
+    try {
+      var payloadBody = {
+        searchTerm: parsed.sld,
+        domainTld: parsed.tld,
+        tlds: buildTldRequestList(parsed.tld)
+      };
+
+      var headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
+      var response = await fetch(searchEndpoint, {
+        method: 'POST',
+        headers: headers,
+        credentials: 'same-origin',
+        body: JSON.stringify(payloadBody)
+      });
+
+      var raw = await response.text();
+      var payload;
+      try {
+        payload = JSON.parse(raw);
+      } catch (parseErr) {
+        throw new Error('Domain search could not be completed. Please refresh the page and try again.');
+      }
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || payload.error || 'Unable to check domain.');
+      }
+
+      var items = (payload.data && payload.data.items) ? payload.data.items : [];
+      if (!items.length) {
+        status.innerHTML = '<span class="text-danger">No availability information found. Try another name or extension.</span>';
+        return;
+      }
+
+      var targetDomain = fullTerm.toLowerCase();
+      var match = items.find(function(item) {
+        return (item.domain || '').toLowerCase() === targetDomain;
+      }) || items[0];
+
+      if (!match) {
+        status.innerHTML = '<span class="text-danger">No availability information found. Try another name or extension.</span>';
+        return;
+      }
+
+      var available = !!match.available && String(match.status || '').toLowerCase() === 'available';
+      var price = null;
+      if (match.pricing && typeof match.pricing.register !== 'undefined') {
+        price = match.pricing.register;
+      } else if (match.registrarCost && typeof match.registrarCost.register !== 'undefined') {
+        price = Number(match.registrarCost.register);
+      }
+
+      var currency = payload.data && payload.data.currency ? payload.data.currency : null;
+      var prefix = currency && currency.prefix ? currency.prefix : '';
+      var suffix = '';
+      if (currency) {
+        if (currency.suffix) {
+          suffix = currency.suffix;
+        } else if (currency.code) {
+          suffix = ' ' + currency.code;
+        }
+      }
+
+      var priceDisplay = '';
+      if (price !== null && !isNaN(price)) {
+        priceDisplay = prefix + Number(price).toFixed(2) + suffix;
+      }
+
+      if (available) {
+        input.value = match.domain;
+        if (priceDisplay) {
+          status.innerHTML = '<span class="text-success"><strong>' + match.domain + '</strong> is available for ' + priceDisplay + ' per year.</span>';
+        } else {
+          status.innerHTML = '<span class="text-success"><strong>' + match.domain + '</strong> is available.</span>';
+        }
+      } else {
+        status.innerHTML = '<span class="text-danger"><strong>' + fullTerm + '</strong> is already registered. Try another name or extension.</span>';
+      }
+    } catch (error) {
+      status.innerHTML = '<span class="text-danger">' + (error.message || 'Unable to check domain.') + '</span>';
+    }
+  }
+
+  document.querySelectorAll('[data-domain-check]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      handleDomainCheck(btn);
+    });
+  });
+
+  refreshPanels();
+})();
+</script>
+

@@ -1,0 +1,246 @@
+<%
+  const domainItem = (cart && cart.items) ? cart.items.find(item => item.type === 'domain') : null;
+  const selectedDomain = (typeof domainSelection !== 'undefined' && domainSelection) ? domainSelection : ((cart && cart.domain) ? cart.domain : null);
+  const finalDomainName = (typeof domainName !== 'undefined' && domainName) ? domainName : (domainItem ? domainItem.domain : (selectedDomain ? selectedDomain.domain : ''));
+  const finalDomainYears = (typeof domainYears !== 'undefined' && domainYears) ? domainYears : (domainItem ? domainItem.domainYears : (selectedDomain ? selectedDomain.years : 1));
+  const finalDefaultNameservers = (typeof defaultNameservers !== 'undefined' && defaultNameservers) ? defaultNameservers : ['', '', '', '', ''];
+  const hasHosting = cart && cart.items && cart.items.some(item => item.type !== 'domain');
+%>
+
+<div id="order-standard_cart" class="order-configure-domain py-4">
+  <div class="container-fluid">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Domains Configuration</h5>
+            <p class="text-muted small mb-0 mt-2">Please review your domain name selections and any addons that are available for them.</p>
+          </div>
+          <div class="card-body">
+            <% if (finalDomainName) { %>
+              <!-- Domain Name Section -->
+              <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="mb-0"><%= finalDomainName %></h6>
+                  <div style="border-top: 2px dashed #dc3545; flex: 1; margin: 0 15px;"></div>
+                </div>
+                
+                <!-- Registration Period -->
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small">Registration Period</label>
+                    <div class="fw-semibold"><%= finalDomainYears %> Year<%= finalDomainYears > 1 ? 's' : '' %></div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small">Hosting</label>
+                    <div>
+                      <% if (hasHosting) { %>
+                        <span class="text-success">Hosting Included</span>
+                      <% } else { %>
+                        <a href="/orderforms/<%= formId %>?step=products" class="text-danger text-decoration-none">
+                          [No Hosting! Click to Add]
+                        </a>
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <form method="post" action="/orderforms/<%= formId %>/domain/configure" id="domainConfigForm">
+                  <input type="hidden" name="_csrf" value="<%= typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '') %>">
+                  <input type="hidden" name="domainName" value="<%= finalDomainName %>">
+                  <input type="hidden" name="domainYears" value="<%= finalDomainYears %>">
+
+                  <!-- Domain Addons Section -->
+                  <% if (typeof addonPricing !== 'undefined' && addonPricing && typeof tldInfo !== 'undefined' && tldInfo) { %>
+                  <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h6 class="mb-0">Domain Addons</h6>
+                      <div style="border-top: 2px dashed #dc3545; flex: 1; margin: 0 15px;"></div>
+                    </div>
+                    <div class="row g-3">
+                      <% if (addonPricing.dnsmanagement && Number(addonPricing.dnsmanagement) >= 0 && tldInfo.dnsmanagement == 1) { %>
+                      <div class="col-12">
+                        <div class="card bg-light border-0">
+                          <div class="card-body p-3">
+                            <div class="form-check d-flex align-items-center">
+                              <input class="form-check-input mt-0 me-3" type="checkbox" name="addons[dnsmanagement]" id="addonDNS" value="1">
+                              <div class="flex-grow-1">
+                                <label class="form-check-label fw-bold d-block" for="addonDNS">DNS Management</label>
+                                <small class="text-muted">External DNS Hosting can help speed up your website and improve availability with increased redundancy.</small>
+                              </div>
+                              <div class="text-end ms-3">
+                                 <span class="badge">
+                                   <%= (typeof activeCurrencyObj !== 'undefined' && activeCurrencyObj) ? activeCurrencyObj.prefix : '$' %><%= Number(addonPricing.dnsmanagement).toFixed(2) %><%= (typeof activeCurrencyObj !== 'undefined' && activeCurrencyObj) ? activeCurrencyObj.suffix : ' USD' %> / Year
+                                 </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <% } %>
+
+                      <% if (addonPricing.idprotection && Number(addonPricing.idprotection) >= 0 && tldInfo.idprotection == 1) { %>
+                      <div class="col-12">
+                        <div class="card bg-light border-0">
+                          <div class="card-body p-3">
+                            <div class="form-check d-flex align-items-center">
+                              <input class="form-check-input mt-0 me-3" type="checkbox" name="addons[idprotection]" id="addonIDProtect" value="1">
+                              <div class="flex-grow-1">
+                                <label class="form-check-label fw-bold d-block" for="addonIDProtect">ID Protection</label>
+                                <small class="text-muted">Protect your personal information and reduce the amount of spam to your inbox.</small>
+                              </div>
+                              <div class="text-end ms-3">
+                                 <span class="badge">
+                                   <%= (typeof activeCurrencyObj !== 'undefined' && activeCurrencyObj) ? activeCurrencyObj.prefix : '$' %><%= Number(addonPricing.idprotection).toFixed(2) %><%= (typeof activeCurrencyObj !== 'undefined' && activeCurrencyObj) ? activeCurrencyObj.suffix : ' USD' %> / Year
+                                 </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <% } %>
+
+                      <% if (addonPricing.emailforwarding && Number(addonPricing.emailforwarding) >= 0 && tldInfo.emailforwarding == 1) { %>
+                      <div class="col-12">
+                        <div class="card bg-light border-0">
+                          <div class="card-body p-3">
+                            <div class="form-check d-flex align-items-center">
+                              <input class="form-check-input mt-0 me-3" type="checkbox" name="addons[emailforwarding]" id="addonEmail" value="1">
+                              <div class="flex-grow-1">
+                                <label class="form-check-label fw-bold d-block" for="addonEmail">Email Forwarding</label>
+                                <small class="text-muted">Get emails forwarded to alternate email addresses of your choice so that you can monitor all from a single account.</small>
+                              </div>
+                              <div class="text-end ms-3">
+                                 <span class="badge">
+                                   <%= (typeof activeCurrencyObj !== 'undefined' && activeCurrencyObj) ? activeCurrencyObj.prefix : '$' %><%= Number(addonPricing.emailforwarding).toFixed(2) %><%= (typeof activeCurrencyObj !== 'undefined' && activeCurrencyObj) ? activeCurrencyObj.suffix : ' USD' %> / Year
+                                 </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <% } %>
+                    </div>
+                  </div>
+                  <% } %>
+
+                  <!-- Nameservers Section -->
+                  <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h6 class="mb-0">Nameservers</h6>
+                      <div style="border-top: 2px dashed #dc3545; flex: 1; margin: 0 15px;"></div>
+                    </div>
+                    <p class="text-muted small mb-3">
+                      If you want to use custom nameservers then enter them below. By default, new domains will use our nameservers for hosting on our network.
+                    </p>
+                    
+                    <div class="row g-2">
+                      <% for (let i = 0; i < 5; i++) { %>
+                        <div class="col-md-6">
+                          <label class="form-label small text-muted">Nameserver <%= i + 1 %></label>
+                          <input 
+                            type="text" 
+                            class="form-control" 
+                            name="nameserver<%= i + 1 %>" 
+                            value="<%= finalDefaultNameservers[i] || '' %>"
+                            placeholder="ns<%= i + 1 %>.example.com"
+                          >
+                        </div>
+                      <% } %>
+                    </div>
+                    
+                    <div class="mt-4">
+                      <button type="submit" class="btn btn-danger">
+                        Continue →
+                      </button>
+                    </div>
+                  </div>
+                </form>
+            <% } else { %>
+              <div class="alert alert-warning">
+                No domain found in cart. Please <a href="/orderforms/<%= formId %>/domainregister">register a domain</a> first.
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card shadow-sm">
+          <div class="card-header bg-white">
+            <h6 class="mb-0">Order Summary</h6>
+          </div>
+          <div class="card-body">
+            <% if (cart && cart.items && cart.items.length) { %>
+              <ul class="list-group list-group-flush mb-3">
+                <% cart.items.forEach(function(item) { %>
+                  <li class="list-group-item px-0 d-flex justify-content-between">
+                    <div>
+                      <strong class="d-block"><%- (item.name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\n/g, '<br>') %></strong>
+                      <% if (item.type === 'domain') { %>
+                        <small class="text-muted"><%= item.domainYears || 1 %> Year<%= (item.domainYears || 1) > 1 ? 's' : '' %></small>
+                      <% } else { %>
+                        <small class="text-muted"><%= item.billingCycle || 'monthly' %></small>
+                      <% } %>
+                    </div>
+                    <span><%= item.price.display %></span>
+                  </li>
+                <% }); %>
+              </ul>
+            <% } else { %>
+              <p class="text-muted mb-3">Your cart is empty.</p>
+            <% } %>
+
+            <div class="border-top pt-3 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Total Due Today</span>
+              <span class="fw-bold fs-5"><%= cart?.totals?.display || '₹0.00' %></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const csrfToken = (typeof window.csrfToken === 'string' && window.csrfToken)
+    ? window.csrfToken
+    : <%- JSON.stringify(typeof csrfTokenValue !== 'undefined' && csrfTokenValue ? csrfTokenValue : (typeof token !== 'undefined' ? token : '')) %>;
+  const form = document.getElementById('domainConfigForm');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Submit form to proceed to checkout
+      const formData = new FormData(form);
+      formData.append('nextStep', 'review');
+      
+      // Convert to URLSearchParams to ensure body-parser handles nested objects correctly
+      const searchParams = new URLSearchParams();
+      for (const [key, value] of formData.entries()) {
+        searchParams.append(key, value);
+      }
+      
+      const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
+      fetch(form.action, {
+        method: 'POST',
+        headers: headers,
+        body: searchParams
+      }).then(() => {
+        window.location.href = '/orderforms/<%= formId %>?step=review';
+      }).catch(err => {
+        console.error('Error:', err);
+        alert('An error occurred. Please try again.');
+      });
+    });
+  }
+})();
+</script>
+
